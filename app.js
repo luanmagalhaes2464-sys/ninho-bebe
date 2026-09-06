@@ -2,18 +2,24 @@ const $=(s,r=document)=>r.querySelector(s); const $$=(s,r=document)=>[...r.query
 const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0));
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const DAY=86400000;
-const _now=new Date(); const today=new Date(_now.getFullYear(),_now.getMonth(),_now.getDate(),12,0,0,0);
 const PROFILE={mother:'Isabela',city:'Viçosa',state:'MG',plan:'Agros',planHolder:'Isabela',transfer:'2026-07-31',embryoDays:5,birthEstimate:'2027-04-18',sex:'Ainda não sabemos',babyNames:'Ian ou Luísa'};
-const transferDate=new Date(PROFILE.transfer+'T12:00:00');
-const lmpEquivalent=new Date(transferDate.getTime()-(14+PROFILE.embryoDays)*DAY);
-const gestDays=Math.max(0,Math.floor((today-lmpEquivalent)/DAY)); const weeks=Math.floor(gestDays/7), days=gestDays%7;
+const parseYmd=s=>{const [y,m,d]=String(s).split('-').map(Number);return new Date(y,m-1,d,12,0,0,0)};
+const calendarDay=d=>Math.round(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/DAY);
+const now=new Date();
+const today=new Date(now.getFullYear(),now.getMonth(),now.getDate(),12,0,0,0);
+const transferDate=parseYmd(PROFILE.transfer);
+const transferGestDays=14+PROFILE.embryoDays;
+const gestDays=Math.max(0,transferGestDays+(calendarDay(today)-calendarDay(transferDate)));
+const weeks=Math.floor(gestDays/7), days=gestDays%7;
 const totalDays=280; const gestPct=clamp(Math.round(gestDays/totalDays*100),0,100);
-const dueDate=new Date(PROFILE.birthEstimate+'T12:00:00');
-const daysToDue=Math.max(0,Math.ceil((dueDate-today)/DAY));
-const fmtDate=d=>new Intl.DateTimeFormat('pt-BR').format(d instanceof Date?d:new Date(d+'T12:00:00'));
-const addDays=(d,n)=>new Date(d.getTime()+n*DAY);
+const lmpEquivalent=new Date(transferDate); lmpEquivalent.setDate(lmpEquivalent.getDate()-transferGestDays);
+const dueDate=parseYmd(PROFILE.birthEstimate);
+const daysToDue=Math.max(0,calendarDay(dueDate)-calendarDay(today));
+const fmtDate=d=>new Intl.DateTimeFormat('pt-BR').format(d instanceof Date?d:parseYmd(d));
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
 const addMonths=(d,n)=>{const x=new Date(d);x.setMonth(x.getMonth()+n);return x};
-const iso=d=>new Date(d).toISOString().slice(0,10);
+const iso=d=>{const x=d instanceof Date?d:parseYmd(d);return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`};
+const gestDaysAt=d=>Math.max(0,transferGestDays+(calendarDay(d)-calendarDay(transferDate)));
 
 const icons={
  baby:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9.3 4.2c.3-1.5 1.5-2.5 3.1-2.5 1.7 0 3 1.2 3 2.9 0 .3 0 .6-.1.8"/><circle cx="12" cy="11" r="6.4"/><path d="M9.3 11.2h.01M14.7 11.2h.01M9.8 14c1.4 1 3 1 4.4 0"/></svg>',
@@ -237,15 +243,7 @@ const babyVaccines=[
  {id:'bv29',age:'24 meses',name:'Revisar caderneta',dose:'Conferir atrasos e calendário vigente'}
 ];
 
-const STORE_KEY='ninho-bebe-v3';
-const priorState=JSON.parse(localStorage.getItem(STORE_KEY)||'null')||JSON.parse(localStorage.getItem('ninho-bebe-v2')||'null')||JSON.parse(localStorage.getItem('ninho-bebe-v1')||'null');
-let state=priorState||{items:defaultItems,watch:[],budget:0,showerGuests:40,motherVax:{},babyVax:{},medicalRecords:[],generatedPrenatal:false,generatedBabyVisits:false,feedingMode:'Ainda não definido'};
-const defaultIds=new Set(defaultItems.map(i=>i.id));
-const previousById=new Map((state.items||[]).map(i=>[i.id,i]));
-const migratedDefaults=defaultItems.map(d=>{const old=previousById.get(d.id);return old?{...d,have:Number(old.have||0),status:old.status||d.status,price:Number(old.price||0)}:{...d}});
-const customItems=(state.items||[]).filter(i=>!defaultIds.has(i.id));
-state.items=[...migratedDefaults,...customItems];
-state.watch ||= []; state.motherVax ||= {}; state.babyVax ||= {}; state.medicalRecords ||= []; state.feedingMode ||= 'Ainda não definido';
+const STORE_KEY='ninho-bebe-v4';
 const FEEDING_TARGETS={
  al1:{'Ainda não definido':4,'Aleitamento materno':2,'Misto':4,'Fórmula':6},
  al2:{'Ainda não definido':4,'Aleitamento materno':2,'Misto':4,'Fórmula':6},
@@ -254,39 +252,74 @@ const FEEDING_TARGETS={
  al11:{'Ainda não definido':1,'Aleitamento materno':0,'Misto':1,'Fórmula':1},
  al12:{'Ainda não definido':1,'Aleitamento materno':0,'Misto':1,'Fórmula':1}
 };
-function targetFor(i){return FEEDING_TARGETS[i.id]?.[state.feedingMode] ?? Number(i.recommended||0)}
-let cloudEnabled=false, syncTimer=null, syncBusy=false, syncPin=sessionStorage.getItem('ninho-pin')||'';
-function authHeaders(){return syncPin?{'x-ninho-pin':syncPin}:{}}
-function mergeCloudState(raw){
+function normalizeState(raw){
  const base=raw&&typeof raw==='object'?raw:{};
  const defaultIds=new Set(defaultItems.map(i=>i.id));
  const previousById=new Map((base.items||[]).map(i=>[i.id,i]));
  const migratedDefaults=defaultItems.map(d=>{const old=previousById.get(d.id);return old?{...d,have:Number(old.have||0),status:old.status||d.status,price:Number(old.price||0)}:{...d}});
  const customItems=(base.items||[]).filter(i=>!defaultIds.has(i.id));
- return {...base,items:[...migratedDefaults,...customItems],watch:Array.isArray(base.watch)?base.watch:[],budget:Number(base.budget||0),showerGuests:Number(base.showerGuests||40),motherVax:base.motherVax||{},babyVax:base.babyVax||{},medicalRecords:Array.isArray(base.medicalRecords)?base.medicalRecords:[],generatedPrenatal:Boolean(base.generatedPrenatal),generatedBabyVisits:Boolean(base.generatedBabyVisits),feedingMode:base.feedingMode||'Ainda não definido'};
+ return {
+   ...base,
+   items:[...migratedDefaults,...customItems],
+   watch:Array.isArray(base.watch)?base.watch:[],
+   budget:Number(base.budget||0),
+   showerGuests:Number(base.showerGuests||40),
+   motherVax:base.motherVax||{},
+   babyVax:base.babyVax||{},
+   medicalRecords:Array.isArray(base.medicalRecords)?base.medicalRecords:[],
+   generatedPrenatal:Boolean(base.generatedPrenatal),
+   generatedBabyVisits:Boolean(base.generatedBabyVisits),
+   feedingMode:base.feedingMode||'Ainda não definido'
+ };
 }
-async function ensureCloud(){
+const priorState=JSON.parse(localStorage.getItem(STORE_KEY)||'null')||JSON.parse(localStorage.getItem('ninho-bebe-v3')||'null')||JSON.parse(localStorage.getItem('ninho-bebe-v2')||'null')||JSON.parse(localStorage.getItem('ninho-bebe-v1')||'null');
+let state=normalizeState(priorState);
+let cloudEnabled=false, syncTimer=null, syncPin=sessionStorage.getItem('ninho-pin')||'', syncBusy=false;
+function targetFor(i){return FEEDING_TARGETS[i.id]?.[state.feedingMode] ?? Number(i.recommended||0)}
+function authHeaders(){return syncPin?{'x-ninho-pin':syncPin}:{}}
+async function ensurePin(){
  try{
   const cfg=await fetch('/api/config',{cache:'no-store'}).then(r=>r.ok?r.json():null);
-  if(!cfg?.database)return cfg;
+  if(!cfg?.database) return cfg;
   cloudEnabled=true;
-  if(cfg.pinRequired&&!syncPin){const entered=window.prompt('Digite o PIN do Ninho para sincronizar com a nuvem:')||'';if(entered){syncPin=entered;sessionStorage.setItem('ninho-pin',entered)}}
+  if(cfg.pinRequired&&!syncPin){
+    const entered=window.prompt('Digite o PIN do Ninho para sincronizar com a nuvem:')||'';
+    if(entered){syncPin=entered;sessionStorage.setItem('ninho-pin',entered)}
+  }
   return cfg;
  }catch{return null}
 }
-async function cloudRequest(method,body){
+async function apiState(method='GET',body){
  const opts={method,headers:{...authHeaders()}};
  if(body!==undefined){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify(body)}
  let res=await fetch('/api/state',opts);
- if(res.status===401){const entered=window.prompt('PIN incorreto. Digite novamente o PIN do Ninho:')||'';if(!entered)return null;syncPin=entered;sessionStorage.setItem('ninho-pin',entered);opts.headers['x-ninho-pin']=syncPin;res=await fetch('/api/state',opts)}
+ if(res.status===401){
+   const entered=window.prompt('PIN incorreto. Digite novamente o PIN do Ninho:')||'';
+   if(!entered) return null;
+   syncPin=entered;sessionStorage.setItem('ninho-pin',entered);
+   opts.headers['x-ninho-pin']=syncPin;
+   res=await fetch('/api/state',opts);
+ }
  return res;
 }
 async function hydrateFromServer(){
- const cfg=await ensureCloud(); if(!cfg?.database)return;
- try{const res=await cloudRequest('GET');if(!res?.ok)return;const data=await res.json();if(data.state){state=mergeCloudState(data.state);localStorage.setItem(STORE_KEY,JSON.stringify(state));renderAll()}else queueCloudSave(50);toast('Ninho sincronizado com a nuvem')}catch(e){console.warn('sync load',e)}
+ const cfg=await ensurePin();
+ if(!cfg?.database) return;
+ try{
+  const res=await apiState('GET'); if(!res?.ok)return;
+  const data=await res.json();
+  if(data.state){state=normalizeState(data.state);localStorage.setItem(STORE_KEY,JSON.stringify(state));renderAll();}
+  else queueCloudSave(50);
+  toast('Ninho sincronizado com a nuvem');
+ }catch(e){console.warn('sync load',e)}
 }
 function queueCloudSave(delay=500){
- if(!cloudEnabled)return;clearTimeout(syncTimer);syncTimer=setTimeout(async()=>{if(syncBusy)return;syncBusy=true;try{const res=await cloudRequest('PUT',state);if(res&&!res.ok)console.warn('Falha ao sincronizar',res.status)}catch(e){console.warn('sync save',e)}finally{syncBusy=false}},delay);
+ if(!cloudEnabled)return;
+ clearTimeout(syncTimer);
+ syncTimer=setTimeout(async()=>{
+  if(syncBusy)return; syncBusy=true;
+  try{const res=await apiState('PUT',state);if(res&&!res.ok)console.warn('Falha ao sincronizar',res.status)}catch(e){console.warn('sync save',e)}finally{syncBusy=false}
+ },delay);
 }
 function save(){localStorage.setItem(STORE_KEY,JSON.stringify(state));renderAll();queueCloudSave();}
 function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
@@ -367,11 +400,11 @@ window.editVax=(key,id)=>{const v=(key==='motherVax'?motherVaccines:babyVaccines
 window.saveVax=(key,id)=>{state[key][id]={done:true,date:$('#vxDate').value,place:$('#vxPlace').value,note:$('#vxNote').value};closeModal();save()};
 
 function defaultBabyVisitDates(){const b=dueDate;return[['Primeira semana',addDays(b,7)],['1 mês',addMonths(b,1)],['2 meses',addMonths(b,2)],['4 meses',addMonths(b,4)],['6 meses',addMonths(b,6)],['9 meses',addMonths(b,9)],['12 meses',addMonths(b,12)],['18 meses',addMonths(b,18)],['24 meses',addMonths(b,24)]]}
-window.generatePrenatal=()=>{if(state.generatedPrenatal){toast('Agenda pré-natal já foi gerada');go('medico');return}let cursor=new Date(today);let w=weeks;let n=0;while(cursor<dueDate&&n<30){const step=w<28?28:w<36?14:7;cursor=addDays(cursor,step);if(cursor>dueDate)break;w=Math.floor((cursor-lmpEquivalent)/DAY/7);state.medicalRecords.push({id:'pr'+Date.now()+n,subject:'Isabela',date:iso(cursor),type:'Pré-natal programado',professional:'',location:'',notes:`Consulta programada pela recorrência de referência (${w<28?'mensal':w<36?'quinzenal':'semanal'}).`,status:'Programado',attachment:null,recurrence:'automática'});n++}state.generatedPrenatal=true;save();go('medico');toast('Agenda pré-natal gerada')};
+window.generatePrenatal=()=>{if(state.generatedPrenatal){toast('Agenda pré-natal já foi gerada');go('medico');return}let cursor=new Date(today);let w=weeks;let n=0;while(cursor<dueDate&&n<30){const step=w<28?28:w<36?14:7;cursor=addDays(cursor,step);if(cursor>dueDate)break;w=Math.floor(gestDaysAt(cursor)/7);state.medicalRecords.push({id:'pr'+Date.now()+n,subject:'Isabela',date:iso(cursor),type:'Pré-natal programado',professional:'',location:'',notes:`Consulta programada pela recorrência de referência (${w<28?'mensal':w<36?'quinzenal':'semanal'}).`,status:'Programado',attachment:null,recurrence:'automática'});n++}state.generatedPrenatal=true;save();go('medico');toast('Agenda pré-natal gerada')};
 window.generateBabyVisits=()=>{if(state.generatedBabyVisits){toast('Agenda do bebê já foi gerada');go('medico');return}defaultBabyVisitDates().forEach(([label,d],n)=>state.medicalRecords.push({id:'bb'+Date.now()+n,subject:'Bebê',date:iso(d),type:`Puericultura · ${label}`,professional:'',location:'',notes:'Consulta de rotina conforme acompanhamento recomendado pelo Ministério da Saúde.',status:'Programado',attachment:null,recurrence:'calendário infantil'}));state.generatedBabyVisits=true;save();go('medico');toast('Agenda do bebê gerada')};
 
 function renderMedical(){const rec=[...state.medicalRecords].sort((a,b)=>String(a.date).localeCompare(String(b.date)));$('#view-medico').innerHTML=`<div class="grid-3"><div class="card panel"><div class="section-head"><div><h2>Novo registro</h2><p>Consulta, ultrassom, exame ou orientação.</p></div></div><button class="btn primary full" onclick="medicalModal()">${icons.plus} Adicionar acompanhamento</button></div><div class="card panel"><div class="section-head"><div><h2>Pré-natal recorrente</h2><p>Mensal → quinzenal → semanal.</p></div></div><button class="btn soft full" onclick="generatePrenatal()">Gerar agenda da Isabela</button></div><div class="card panel"><div class="section-head"><div><h2>Puericultura até 2 anos</h2><p>1ª semana, 1, 2, 4, 6, 9, 12, 18 e 24 meses.</p></div></div><button class="btn soft full" onclick="generateBabyVisits()">Gerar agenda do bebê</button></div></div><div class="card panel" style="margin-top:16px"><div class="section-head"><div><h2>Linha do tempo médica</h2><p>Anexe imagens e escreva o que o médico explicou. O Agente Ninho traduz termos para linguagem simples.</p></div></div>${rec.length?`<div class="medical-timeline">${rec.map(medicalCard).join('')}</div>`:'<div class="empty">Nenhum registro ainda. Adicione a primeira consulta ou gere as recorrências.</div>'}</div>`}
-function medicalCard(r){const future=new Date(r.date+'T12:00:00')>today;return `<article class="medical-card ${future?'future':''}"><div class="medical-date"><b>${r.date?fmtDate(r.date):'Sem data'}</b><span>${esc(r.subject||'')}</span></div><div class="medical-content"><div class="medical-title"><div><h3>${esc(r.type||'Acompanhamento')}</h3><p>${[r.professional,r.location].filter(Boolean).map(esc).join(' · ')||'Sem profissional/local informado'}</p></div><span class="tag ${r.status==='Programado'?'warn':'green'}">${esc(r.status||'Realizado')}</span></div>${r.notes?`<div class="medical-notes">${esc(r.notes)}</div>`:''}${r.attachment?`<div class="attachment-preview">${r.attachment.type?.startsWith('image/')?`<img src="${r.attachment.data}" alt="Anexo médico">`:icons.clip}<span>${esc(r.attachment.name)}</span></div>`:''}<div class="medical-actions"><button class="btn soft" onclick="explainRecord('${r.id}')">Explicar em linguagem simples</button><button class="btn" onclick="medicalModal('${r.id}')">Editar</button><button class="btn danger-btn" onclick="deleteMedical('${r.id}')">Excluir</button></div></div></article>`}
+function medicalCard(r){const future=calendarDay(parseYmd(r.date))>calendarDay(today);return `<article class="medical-card ${future?'future':''}"><div class="medical-date"><b>${r.date?fmtDate(r.date):'Sem data'}</b><span>${esc(r.subject||'')}</span></div><div class="medical-content"><div class="medical-title"><div><h3>${esc(r.type||'Acompanhamento')}</h3><p>${[r.professional,r.location].filter(Boolean).map(esc).join(' · ')||'Sem profissional/local informado'}</p></div><span class="tag ${r.status==='Programado'?'warn':'green'}">${esc(r.status||'Realizado')}</span></div>${r.notes?`<div class="medical-notes">${esc(r.notes)}</div>`:''}${r.attachment?`<div class="attachment-preview">${r.attachment.type?.startsWith('image/')?`<img src="${r.attachment.data}" alt="Anexo médico">`:icons.clip}<span>${esc(r.attachment.name)}</span></div>`:''}<div class="medical-actions"><button class="btn soft" onclick="explainRecord('${r.id}')">Explicar em linguagem simples</button><button class="btn" onclick="medicalModal('${r.id}')">Editar</button><button class="btn danger-btn" onclick="deleteMedical('${r.id}')">Excluir</button></div></div></article>`}
 window.medicalModal=id=>{const r=id?state.medicalRecords.find(x=>x.id===id):{};openModal(`<h3>${id?'Editar':'Novo'} acompanhamento</h3><div class="form-grid"><div class="field"><label>De quem?</label><select id="mdSubject"><option ${r.subject==='Isabela'?'selected':''}>Isabela</option><option ${r.subject==='Bebê'?'selected':''}>Bebê</option></select></div><div class="field"><label>Data</label><input id="mdDate" type="date" value="${r.date||iso(today)}"></div><div class="field"><label>Tipo</label><input id="mdType" value="${esc(r.type||'')}" placeholder="Ultrassom, obstetra, exame..."></div><div class="field"><label>Status</label><select id="mdStatus"><option ${r.status!=='Programado'?'selected':''}>Realizado</option><option ${r.status==='Programado'?'selected':''}>Programado</option></select></div><div class="field"><label>Profissional</label><input id="mdProfessional" value="${esc(r.professional||'')}"></div><div class="field"><label>Local</label><input id="mdLocation" value="${esc(r.location||'')}"></div><div class="field"><label>Recorrência</label><select id="mdRec"><option value="none">Sem recorrência</option><option value="30">A cada 30 dias</option><option value="14">A cada 14 dias</option><option value="7">Semanal</option></select></div><div class="field"><label>Anexo</label><input id="mdFile" type="file" accept="image/*,.pdf"></div></div><div class="field" style="margin-top:12px"><label>O que foi feito / laudo / observação</label><textarea id="mdNotes" placeholder="Cole o laudo ou escreva o que o médico explicou...">${esc(r.notes||'')}</textarea></div>${r.attachment?`<div class="notice" style="margin-top:10px">Anexo atual: ${esc(r.attachment.name)}. Se escolher outro arquivo, ele será substituído.</div>`:''}<div class="modal-foot"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveMedical('${id||''}')">Salvar</button></div>`)};
 async function compressImage(file){return new Promise((resolve,reject)=>{const rd=new FileReader();rd.onload=()=>{if(!file.type.startsWith('image/')){if(file.size>3*1024*1024){reject(new Error('Arquivo maior que 3 MB'));return}resolve({name:file.name,type:file.type,data:rd.result});return}const img=new Image();img.onload=()=>{const max=1200,scale=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);c.getContext('2d').drawImage(img,0,0,c.width,c.height);resolve({name:file.name,type:'image/jpeg',data:c.toDataURL('image/jpeg',.72)})};img.onerror=reject;img.src=rd.result};rd.onerror=reject;rd.readAsDataURL(file)})}
 window.saveMedical=async id=>{let r=id?state.medicalRecords.find(x=>x.id===id):null;const file=$('#mdFile').files[0];let attachment=r?.attachment||null;if(file){try{attachment=await compressImage(file)}catch(e){toast('Não foi possível ler o anexo')}}const base={id:id||'md'+Date.now(),subject:$('#mdSubject').value,date:$('#mdDate').value,type:$('#mdType').value||'Acompanhamento',status:$('#mdStatus').value,professional:$('#mdProfessional').value,location:$('#mdLocation').value,notes:$('#mdNotes').value,attachment,recurrence:$('#mdRec').value};if(r)Object.assign(r,base);else state.medicalRecords.push(base);const rec=+$('#mdRec').value;if(rec>0){for(let n=1;n<=3;n++)state.medicalRecords.push({...base,id:'md'+Date.now()+n,date:iso(addDays(new Date(base.date+'T12:00:00'),rec*n)),status:'Programado',attachment:null,notes:`Recorrência programada a partir de “${base.type}”.`})}closeModal();save()};
@@ -388,7 +421,7 @@ function agentAnswer(q){const t=q.toLowerCase(),st=stats();
  if(/depois.*6|6 meses|futuro/.test(t)){const x=state.items.filter(i=>!['Nascimento','0–3m','3–6m'].includes(i.phase)&&targetFor(i)>0).slice(0,12);return `Itens que podem esperar: ${x.map(i=>`${i.name} [${i.phase}]`).join(', ')}. A ideia é comprar perto da fase para evitar tamanho/estação errados.`}
  if(/vacina.*mãe|vacina.*mae|isabela.*vacina|dtpa|vsr/.test(t)){const pending=motherVaccines.filter(v=>!state.motherVax[v.id]?.done);return `Vacinação da Isabela: ${pending.length} registro(s) ainda não marcados como feitos. Principais marcos: dTpa a partir da 20ª semana e VSR a partir da 28ª. Influenza, covid-19, hepatite B e dT dependem da temporada/histórico. Confirme o cartão com o pré-natal.`}
  if(/primeira.*vacina|vacina.*bebê|vacina.*bebe|bcg/.test(t))return `Ao nascer, o calendário-base prevê hepatite B e BCG. Depois vêm as vacinas de 2 meses. Como Ian/Luísa nascerá em 2027, a guia usa 2026 como base e deve ser conferida novamente após o nascimento.`;
- if(/consulta|médic|medic|agenda|programad/.test(t)){const future=state.medicalRecords.filter(r=>new Date(r.date+'T12:00:00')>=today).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,6);return future.length?`Próximos acompanhamentos:\n• ${future.map(r=>`${fmtDate(r.date)} — ${r.type} (${r.subject})`).join('\n• ')}`:'Ainda não há consultas futuras cadastradas. Na guia Médico você pode gerar a recorrência do pré-natal e da puericultura.'}
+ if(/consulta|médic|medic|agenda|programad/.test(t)){const future=state.medicalRecords.filter(r=>calendarDay(parseYmd(r.date))>=calendarDay(today)).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,6);return future.length?`Próximos acompanhamentos:\n• ${future.map(r=>`${fmtDate(r.date)} — ${r.type} (${r.subject})`).join('\n• ')}`:'Ainda não há consultas futuras cadastradas. Na guia Médico você pode gerar a recorrência do pré-natal e da puericultura.'}
  if(/último registro|ultimo registro|explique.*registro|laudo/.test(t)){const r=[...state.medicalRecords].filter(x=>x.notes).sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0];return r?explainText(r.notes):'Ainda não há registro médico com texto para explicar.'}
  if(/falta|comprar|enxoval/.test(t)){const miss=state.items.filter(i=>i.essential&&targetFor(i)>i.have&&i.status!=='Evitar').slice(0,10);return miss.length?`Principais faltas:\n• ${miss.map(i=>`${i.name} ${i.size} — faltam ${targetFor(i)-i.have}`).join('\n• ')}`:'Os essenciais planejados estão cobertos.'}
  if(/ganh|presente/.test(t)){const g=state.items.filter(i=>i.status==='Ganhou'&&i.have>0);return g.length?`Vocês registraram ${st.gifts} unidades recebidas: ${g.slice(0,10).map(i=>`${i.name} (${i.have})`).join(', ')}.`:'Ainda não há itens marcados como presente.'}
