@@ -11,7 +11,31 @@ const app = express();
 
 app.disable("x-powered-by");
 app.use(express.json({ limit: "12mb" }));
-app.use(express.static(__dirname, { etag: true, maxAge: process.env.NODE_ENV === "production" ? "1h" : 0 }));
+
+// Entrega explícita dos arquivos do front-end. Isso evita que o fallback do SPA
+// responda index.html para CSS/JS em alguns ambientes de deploy.
+app.get("/styles.css", (_req, res) => {
+  res.type("text/css");
+  res.set("Cache-Control", "no-store");
+  res.sendFile(path.join(__dirname, "styles.css"));
+});
+app.get("/app.js", (_req, res) => {
+  res.type("application/javascript");
+  res.set("Cache-Control", "no-store");
+  res.sendFile(path.join(__dirname, "app.js"));
+});
+app.get("/manifest.webmanifest", (_req, res) => {
+  res.type("application/manifest+json");
+  res.set("Cache-Control", "no-store");
+  res.sendFile(path.join(__dirname, "manifest.webmanifest"));
+});
+app.get("/sw.js", (_req, res) => {
+  res.type("application/javascript");
+  res.set("Cache-Control", "no-store");
+  res.sendFile(path.join(__dirname, "sw.js"));
+});
+
+app.use(express.static(__dirname, { etag: true, maxAge: 0, fallthrough: true }));
 
 function safeEqual(a = "", b = "") {
   const aa = Buffer.from(String(a));
