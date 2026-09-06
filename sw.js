@@ -1,4 +1,4 @@
-const CACHE = 'ninho-v11-login-persistente';
+const CACHE = 'ninho-v12-multiselect-enxoval';
 const ASSETS = ['./', './index.html', './styles.css', './app.js', './manifest.webmanifest'];
 
 self.addEventListener('install', event => {
