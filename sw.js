@@ -1,4 +1,4 @@
-const CACHE = 'ninho-v16-enxoval-revisado';
+const CACHE = 'ninho-v17-enxoval-fontes-reais';
 const ASSETS = ['./', './index.html', './styles.css', './app.js', './manifest.webmanifest', './mascote-ninho-v2.webp'];
 
 self.addEventListener('install', event => {
