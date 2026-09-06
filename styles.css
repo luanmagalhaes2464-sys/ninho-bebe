@@ -56,3 +56,13 @@
 .filter-clear:hover{background:var(--green-2)}
 @media(max-width:1180px){.multiselect-field{grid-column:span 2}}
 @media(max-width:760px){.multiselect-field{grid-column:1/-1}.check-filter{gap:6px}.check-chip{font-size:9.5px;padding:6px 8px}}
+
+/* --- Mascote oficial do Ninho --- */
+.logo,.avatar .bubble,.agent-baby,.bot-icon{overflow:hidden}
+.logo img,.avatar .bubble img,.agent-baby img,.bot-icon img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit}
+.logo{padding:0;background:#eef5ef}
+.avatar .bubble{padding:0;background:#eef5ef}
+.agent-baby{width:92px;height:92px;border-radius:24px;background:#eef5ef;border:1px solid #dcefe2;display:grid;place-items:center;margin-bottom:15px;padding:0}
+.agent-baby img{object-position:center 42%}
+.bot-icon{background:#eef5ef;border:1px solid #dcefe2}
+.bot-icon img{transform:scale(1.06);object-position:center 42%}

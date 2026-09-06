@@ -5,5 +5,13 @@
   "display": "standalone",
   "background_color": "#f7faf8",
   "theme_color": "#cfe8d6",
-  "description": "Gestação, vacinas, acompanhamento médico, enxoval até 2 anos, orçamento e chá de fraldas."
+  "description": "Gestação, vacinas, acompanhamento médico, enxoval até 2 anos, orçamento e chá de fraldas.",
+  "icons": [
+    {
+      "src": "mascote-ninho.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    }
+  ]
 }

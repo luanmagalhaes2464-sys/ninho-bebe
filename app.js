@@ -2,6 +2,7 @@ const $=(s,r=document)=>r.querySelector(s); const $$=(s,r=document)=>[...r.query
 const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0));
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const DAY=86400000;
+const MASCOT='mascote-ninho.webp';
 const PROFILE={mother:'Isabela',city:'Viçosa',state:'MG',plan:'Agros',planHolder:'Isabela',transfer:'2026-07-31',embryoDays:5,birthEstimate:'2027-04-18',sex:'Ainda não sabemos',babyNames:'Ian ou Luísa'};
 const parseYmd=s=>{const [y,m,d]=String(s).split('-').map(Number);return new Date(y,m-1,d,12,0,0,0)};
 const calendarDay=d=>Math.round(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/DAY);
@@ -20,6 +21,7 @@ const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
 const addMonths=(d,n)=>{const x=new Date(d);x.setMonth(x.getMonth()+n);return x};
 const iso=d=>{const x=d instanceof Date?d:parseYmd(d);return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`};
 const gestDaysAt=d=>Math.max(0,transferGestDays+(calendarDay(d)-calendarDay(transferDate)));
+function greetingByHour(){const h=new Date().getHours();return h<12?'Bom dia 👶':h<18?'Boa tarde 👶':'Boa noite 👶'}
 
 const icons={
  baby:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9.3 4.2c.3-1.5 1.5-2.5 3.1-2.5 1.7 0 3 1.2 3 2.9 0 .3 0 .6-.1.8"/><circle cx="12" cy="11" r="6.4"/><path d="M9.3 11.2h.01M14.7 11.2h.01M9.8 14c1.4 1 3 1 4.4 0"/></svg>',
@@ -40,7 +42,7 @@ const icons={
  clip:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m21.4 11.6-8.5 8.5a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 1 1-2.8-2.8l8.5-8.5"/></svg>',
  bottle:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 3h6M10 3v3h4V3M8 8h8v12a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2Z"/><path d="M8 12h8"/></svg>'
 };
-if($('#logoIcon')) $('#logoIcon').innerHTML=icons.baby; if($('#avatarBaby')) $('#avatarBaby').innerHTML=icons.baby; if($('#sideBaby')) $('#sideBaby').innerHTML=icons.bottle;
+const mascotImg=`<img src="${MASCOT}" alt="Mascote do Ninho">`; if($('#logoIcon')) $('#logoIcon').innerHTML=mascotImg; if($('#avatarBaby')) $('#avatarBaby').innerHTML=mascotImg; if($('#sideBaby')) $('#sideBaby').innerHTML=mascotImg;
 
 const NAV=[['dashboard','Início','home'],['enxoval','Enxoval','bag'],['promocoes','Promoções','tag'],['orcamento','Orçamento','wallet'],['cha','Chá','gift'],['gestacao','Gestação','calendar'],['vacmae','Vacinas mãe','syringe'],['vacbebe','Vacinas bebê','shield'],['medico','Médico','doctor'],['agente','Agente','bot']];
 const pageMeta={dashboard:['Nossa jornada','Tudo organizado para comprar só o que realmente faz sentido.'],enxoval:['Enxoval até 2 anos','Inventário completo por fase, com quantidades de rotina e compra no momento certo.'],promocoes:['Radar de preços','Defina o preço-alvo e acompanhe os links que valem a pena.'],orcamento:['Planejamento financeiro','Veja o impacto de cada compra antes de gastar.'],cha:['Chá de fraldas','Distribua tamanhos sem concentrar tudo em RN.'],gestacao:['Gestação','Semana atual, pré-natal e próximos marcos.'],vacmae:['Vacinação da mãe','Calendário da gestante com controle de doses.'],vacbebe:['Vacinação do bebê','Calendário-base do PNI até 24 meses.'],medico:['Acompanhamento médico','Consultas, exames, anexos e recorrências em uma linha do tempo.'],agente:['Agente Ninho','Pergunte sobre inventário, saúde, consultas, vacinas e orçamento.']};
@@ -53,7 +55,7 @@ function go(id){
   $$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${id}`));
   $$('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===id));
   $('#eyebrow').textContent=pageMeta[id][0]; $('#pageSub').textContent=pageMeta[id][1];
-  $('#pageTitle').textContent=id==='dashboard'?'Bom dia 👶':pageMeta[id][0]; window.scrollTo({top:0,behavior:'smooth'});
+  $('#pageTitle').textContent=id==='dashboard'?greetingByHour():pageMeta[id][0]; window.scrollTo({top:0,behavior:'smooth'});
 }
 
 const I=(id,name,category,size,recommended,when,essential,note,phase,status='Planejado')=>({id,name,category,size,recommended,have:0,status,when,essential,note,phase,price:0});
@@ -625,7 +627,7 @@ const termMap=[['saco gestacional','estrutura inicial vista no ultrassom onde a 
 function explainText(text){if(!text?.trim())return 'Não há texto suficiente nesse registro. Se o anexo for um laudo ou ultrassom, escreva ou cole o texto principal para eu explicar os termos.';const lower=text.toLowerCase();const hits=termMap.filter(([k])=>lower.includes(k));let out=`Em linguagem simples, o registro diz:\n\n${text.trim()}\n`;if(hits.length)out+=`\nTermos identificados:\n• ${hits.map(([k,v])=>`${k}: ${v}`).join('\n• ')}`;out+='\n\nIsso organiza o significado dos termos, mas não substitui a interpretação da obstetra/pediatra, principalmente para dizer se um achado é normal ou preocupante.';return out}
 window.explainRecord=async id=>{const r=state.medicalRecords.find(x=>x.id===id);openModal(`<h3>Agente Ninho · explicando registro</h3><div class="agent-explain" id="aiExplain">Analisando o registro...</div><div class="modal-foot"><button class="btn primary" onclick="closeModal()">Fechar</button></div>`);let answer='';try{const res=await fetch('/api/medical-explain',{method:'POST',headers:{'Content-Type':'application/json',...authHeaders()},body:JSON.stringify({notes:r.notes||'',attachment:r.attachment||null,subject:r.subject||'',type:r.type||'',date:r.date||''})});if(res.ok){const data=await res.json();answer=data.explanation||''}}catch(e){}if(!answer){let extra=r.attachment?`\n\nAnexo: ${r.attachment.name}. A leitura visual automática fica disponível quando o Ninho estiver rodando com o servidor de IA. Enquanto isso, o texto escrito no registro já pode ser explicado localmente.`:'';answer=explainText(r.notes)+extra}const el=$('#aiExplain');if(el)el.innerHTML=esc(answer).replaceAll('\n','<br>')};
 
-function renderAgent(){const qs=['Isabela está com quantas semanas?','O que falta para o nascimento?','O que comprar só depois de 6 meses?','Quais vacinas da mãe estão pendentes?','Quais são as primeiras vacinas do bebê?','Quais consultas médicas estão programadas?','Explique o último registro médico','Quanto já gastamos?'];$('#view-agente').innerHTML=`<div class="agent-shell"><div class="card agent-side"><div class="agent-baby">${icons.baby}</div><h3>Perguntas rápidas</h3><div class="suggestions">${qs.map(q=>`<button class="suggest" onclick="ask('${q.replaceAll("'","\\'")}')">${q}</button>`).join('')}</div></div><div class="card chat"><div class="chat-head"><div class="bot-icon">${icons.bot}</div><div><b>Agente Ninho</b><span>Ian ou Luísa · saúde + inventário + orçamento</span></div></div><div class="messages" id="messages"><div class="msg bot">Oi! Agora eu conheço o inventário até 2 anos, as vacinas da Isabela e do bebê, a agenda médica e os registros que vocês salvarem.</div></div><div class="chat-input"><input id="agentInput" placeholder="Pergunte qualquer coisa sobre Ian ou Luísa..." onkeydown="if(event.key==='Enter')sendAgent()"><button onclick="sendAgent()">${icons.send}</button></div></div></div>`}
+function renderAgent(){const qs=['Isabela está com quantas semanas?','O que falta para o nascimento?','O que comprar só depois de 6 meses?','Quais vacinas da mãe estão pendentes?','Quais são as primeiras vacinas do bebê?','Quais consultas médicas estão programadas?','Explique o último registro médico','Quanto já gastamos?'];$('#view-agente').innerHTML=`<div class="agent-shell"><div class="card agent-side"><div class="agent-baby"><img src="${MASCOT}" alt="Mascote do Ninho"></div><h3>Perguntas rápidas</h3><div class="suggestions">${qs.map(q=>`<button class="suggest" onclick="ask('${q.replaceAll("'","\\'")}')">${q}</button>`).join('')}</div></div><div class="card chat"><div class="chat-head"><div class="bot-icon"><img src="${MASCOT}" alt="Mascote do Ninho"></div><div><b>Agente Ninho</b><span>Ian ou Luísa · saúde + inventário + orçamento</span></div></div><div class="messages" id="messages"><div class="msg bot">Oi! Agora eu conheço o inventário até 2 anos, as vacinas da Isabela e do bebê, a agenda médica e os registros que vocês salvarem.</div></div><div class="chat-input"><input id="agentInput" placeholder="Pergunte qualquer coisa sobre Ian ou Luísa..." onkeydown="if(event.key==='Enter')sendAgent()"><button onclick="sendAgent()">${icons.send}</button></div></div></div>`}
 window.ask=q=>{$('#agentInput').value=q;sendAgent()};window.sendAgent=()=>{const i=$('#agentInput'),q=i.value.trim();if(!q)return;const m=$('#messages');m.insertAdjacentHTML('beforeend',`<div class="msg user">${esc(q)}</div>`);i.value='';const a=agentAnswer(q);setTimeout(()=>{m.insertAdjacentHTML('beforeend',`<div class="msg bot">${esc(a)}</div>`);m.scrollTop=m.scrollHeight},120);m.scrollTop=m.scrollHeight};
 function agentAnswer(q){const t=q.toLowerCase(),st=stats();
  if(/semana|gesta|quanto tempo/.test(t))return `Hoje a Isabela está com ${weeks} semanas${days?` e ${days} dias`:''}. Pela transferência de embrião D5 em 31/07/2026, no dia 06/09/2026 ela completa exatamente 8 semanas.`;
@@ -674,5 +676,6 @@ async function restoreLogin(){
   }
 }
 renderNav();
+$('#pageTitle').textContent=greetingByHour();
 restoreLogin();
 if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
