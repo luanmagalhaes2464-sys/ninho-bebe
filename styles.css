@@ -42,3 +42,17 @@
 .mobile-logout{display:none}
 @media(max-width:1180px){.sidebar-account-copy{display:none}.sidebar-account{grid-template-columns:1fr;padding:8px}.sidebar-account-icon{display:none}.logout-btn{width:100%;padding:8px 4px}.nav{max-height:calc(100vh - 115px)}}
 @media(max-width:760px){.mobile-logout{display:inline-flex;position:fixed;left:12px;bottom:calc(72px + env(safe-area-inset-bottom));z-index:29;border:1px solid var(--line);background:rgba(255,255,255,.94);backdrop-filter:blur(10px);border-radius:999px;padding:7px 10px;font-size:9px;font-weight:800;color:#6e625d;box-shadow:0 7px 18px rgba(35,66,49,.08)}}
+
+/* --- Filtros multi-seleção do enxoval --- */
+.multiselect-field{grid-column:span 2}
+.multiselect-field>label{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.filter-hint{font-size:8.5px;text-transform:none;letter-spacing:0;color:#9aa69f;font-weight:500}
+.check-filter{display:flex;align-items:center;gap:7px;flex-wrap:wrap;min-height:46px;padding:8px;border:1px solid var(--line);border-radius:14px;background:#fff}
+.check-chip{position:relative;display:inline-flex;align-items:center;gap:6px;padding:7px 9px;border:1px solid #e3ebe6;border-radius:999px;background:#fafcfb;color:#617168;font-size:10px;cursor:pointer;transition:.18s;user-select:none}
+.check-chip:hover{border-color:#bdd5c4;background:#f5faf6}
+.check-chip.checked{background:var(--green-2);border-color:#cde4d3;color:var(--green-4);font-weight:800}
+.check-chip input{width:14px!important;height:14px;margin:0;accent-color:var(--green-4);padding:0!important;box-shadow:none!important}
+.filter-clear{border:0;background:transparent;color:var(--green-4);font-size:9.5px;font-weight:800;padding:6px 8px;border-radius:999px}
+.filter-clear:hover{background:var(--green-2)}
+@media(max-width:1180px){.multiselect-field{grid-column:span 2}}
+@media(max-width:760px){.multiselect-field{grid-column:1/-1}.check-filter{gap:6px}.check-chip{font-size:9.5px;padding:6px 8px}}
