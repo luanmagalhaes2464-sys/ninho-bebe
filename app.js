@@ -2,7 +2,7 @@ const $=(s,r=document)=>r.querySelector(s); const $$=(s,r=document)=>[...r.query
 const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0));
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const DAY=86400000;
-const MASCOT='mascote-ninho.webp';
+const MASCOT='mascote-ninho-v2.webp';
 const PROFILE={mother:'Isabela',city:'Viçosa',state:'MG',plan:'Agros',planHolder:'Isabela',transfer:'2026-07-31',embryoDays:5,birthEstimate:'2027-04-18',sex:'Ainda não sabemos',babyNames:'Ian ou Luísa'};
 const parseYmd=s=>{const [y,m,d]=String(s).split('-').map(Number);return new Date(y,m-1,d,12,0,0,0)};
 const calendarDay=d=>Math.round(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/DAY);
@@ -539,6 +539,12 @@ function renderDashboard(){const st=stats();$('#view-dashboard').innerHTML=`\n $
 function renderSmartList(){const missing=state.items.filter(i=>i.essential&&targetFor(i)>i.have&&i.status!=='Evitar'&&['Nascimento','0–3m'].includes(i.phase)).slice(0,5);return missing.length?`<div class="timeline">${missing.map(i=>`<div class="timeline-item"><div class="timebadge">${i.size.split('/')[0]}</div><div><b>${i.name}</b><span>Faltam ${targetFor(i)-i.have} · ${i.when}</span></div><span class="tag ${i.status==='Pesquisar'?'warn':'green'}">${i.status}</span></div>`).join('')}</div>`:'<div class="empty">Essenciais iniciais cobertos 🎉</div>'}
 
 let currentCat='Todos',currentPhases=[],currentSizes=[],currentWhen='Todos',currentCompletion='Todos';
+let openMultiFilter='';
+function selectedFilterLabel(values,allLabel){if(!values.length)return allLabel;if(values.length<=2)return values.join(' + ');return `${values.length} selecionados`}
+function renderMultiDropdown(kind,label,hint,options,selected){
+ const isPhase=kind==='phase',toggle=isPhase?'togglePhaseFilter':'toggleSizeFilter',clear=isPhase?'clearPhaseFilters':'clearSizeFilters',allLabel=isPhase?'Todas':'Todos';
+ return `<div class="field compact-multi-field"><label>${label} <span class="filter-hint">${hint}</span></label><details class="multi-dropdown ${kind==='size'?'size-dropdown':''}" ${openMultiFilter===kind?'open':''} onclick="event.stopPropagation()" ontoggle="rememberMultiOpen('${kind}',this.open)"><summary><span>${selectedFilterLabel(selected,allLabel)}</span><span class="multi-chevron">⌄</span></summary><div class="multi-panel"><div class="multi-panel-head"><small>Selecione uma ou mais opções</small><button type="button" onclick="${clear}();event.preventDefault();event.stopPropagation()">Limpar</button></div><div class="multi-options">${options.map(c=>`<label class="multi-option ${selected.includes(c)?'selected':''}"><input type="checkbox" ${selected.includes(c)?'checked':''} onchange="${toggle}('${c.replaceAll("'","\\'")}',this.checked);event.stopPropagation()"><span class="multi-check">${selected.includes(c)?'✓':''}</span><span>${c}</span></label>`).join('')}</div></div></details></div>`;
+}
 function getSizeFilters(){
   const preferred=['RN','P','0–3m','M','3–6m','G','6–9m','GG','9–12m','12–18m','18–24m','Único'];
   const present=new Set();
@@ -572,8 +578,8 @@ function renderEnxoval(){
 ${renderSeasonPlanner()}
  <div class="filter-grid four">
    <div class="field"><label>Categoria</label><select onchange="setCat(this.value)">${cats.map(c=>`<option value="${c}" ${c===currentCat?'selected':''}>${c}</option>`).join('')}</select></div>
-   <div class="field multiselect-field"><label>Fase <span class="filter-hint">marque uma ou mais</span></label><div class="check-filter">${phases.map(c=>`<label class="check-chip ${currentPhases.includes(c)?'checked':''}"><input type="checkbox" ${currentPhases.includes(c)?'checked':''} onchange="togglePhaseFilter('${c.replaceAll("'","\\'")}',this.checked)"><span>${c}</span></label>`).join('')}<button type="button" class="filter-clear" onclick="clearPhaseFilters()">Todas</button></div></div>
-   <div class="field multiselect-field"><label>Tamanho / faixa <span class="filter-hint">ex.: RN + 0–3m</span></label><div class="check-filter">${sizes.map(c=>`<label class="check-chip ${currentSizes.includes(c)?'checked':''}"><input type="checkbox" ${currentSizes.includes(c)?'checked':''} onchange="toggleSizeFilter('${c.replaceAll("'","\\'")}',this.checked)"><span>${c}</span></label>`).join('')}<button type="button" class="filter-clear" onclick="clearSizeFilters()">Todos</button></div></div>
+   ${renderMultiDropdown('phase','Fase','uma ou mais',phases,currentPhases)}
+   ${renderMultiDropdown('size','Tamanho / faixa','ex.: RN + 0–3m',sizes,currentSizes)}
    <div class="field"><label>Quando</label><select onchange="setWhenFilter(this.value)">${whens.map(c=>`<option value="${c}" ${c===currentWhen?'selected':''}>${c}</option>`).join('')}</select></div>
    <div class="field"><label>Itens</label><select onchange="setCompletionFilter(this.value)">${completionOptions.map(c=>`<option value="${c}" ${c===currentCompletion?'selected':''}>${c}</option>`).join('')}</select></div>
    <div class="field"><label>Alimentação planejada</label><select onchange="setFeedingMode(this.value)">${['Ainda não definido','Aleitamento materno','Misto','Fórmula'].map(c=>`<option value="${c}" ${c===state.feedingMode?'selected':''}>${c}</option>`).join('')}</select></div>
@@ -582,10 +588,11 @@ ${renderSeasonPlanner()}
 }
 function itemRow(i){const s=seasonPriorityInfo(i);const seasonLine=i.category==='Roupas'?`<div class="season-mini-block"><span class="season-pill ${s.primary}">${s.priority}</span><small>Uso previsto: ${s.windowText} · ${s.label}.</small><small>${s.advice}</small>${s.adjustment?`<small>Alvo ajustado pelo clima: ${s.adjustment>0?'+':''}${s.adjustment}.</small>`:''}</div>`:'';return `<tr><td><b>${i.name}</b><br><span class="muted-mini">${i.category}${i.essential?' · essencial':''}</span></td><td><span class="tag">${i.phase}</span></td><td>${i.size}</td><td><b>${targetFor(i)}</b></td><td><div class="qty"><button onclick="q('${i.id}',-1)">−</button><b>${i.have}</b><button onclick="q('${i.id}',1)">+</button></div></td><td><select class="status-select" onchange="statusChange('${i.id}',this.value)">${['Planejado','Pesquisar','Comprado','Ganhou','Esperar','Evitar'].map(st=>`<option ${i.status===st?'selected':''}>${st}</option>`).join('')}</select></td><td>${i.when}</td><td class="note-cell">${i.note}${seasonLine}</td></tr>`}
 window.setCat=c=>{currentCat=c;renderEnxoval()};
-window.togglePhaseFilter=(value,checked)=>{currentPhases=checked?[...new Set([...currentPhases,value])]:currentPhases.filter(x=>x!==value);renderEnxoval()};
-window.clearPhaseFilters=()=>{currentPhases=[];renderEnxoval()};
-window.toggleSizeFilter=(value,checked)=>{currentSizes=checked?[...new Set([...currentSizes,value])]:currentSizes.filter(x=>x!==value);renderEnxoval()};
-window.clearSizeFilters=()=>{currentSizes=[];renderEnxoval()};
+window.rememberMultiOpen=(kind,isOpen)=>{if(isOpen)openMultiFilter=kind;else if(openMultiFilter===kind)openMultiFilter=''};
+window.togglePhaseFilter=(value,checked)=>{openMultiFilter='phase';currentPhases=checked?[...new Set([...currentPhases,value])]:currentPhases.filter(x=>x!==value);renderEnxoval()};
+window.clearPhaseFilters=()=>{openMultiFilter='phase';currentPhases=[];renderEnxoval()};
+window.toggleSizeFilter=(value,checked)=>{openMultiFilter='size';currentSizes=checked?[...new Set([...currentSizes,value])]:currentSizes.filter(x=>x!==value);renderEnxoval()};
+window.clearSizeFilters=()=>{openMultiFilter='size';currentSizes=[];renderEnxoval()};
 window.setWhenFilter=c=>{currentWhen=c;renderEnxoval()};window.setCompletionFilter=c=>{currentCompletion=c;renderEnxoval()};window.setFeedingMode=c=>{state.feedingMode=c;save();};window.q=(id,d)=>{const i=state.items.find(x=>x.id===id);i.have=Math.max(0,(i.have||0)+d);if(i.have>0&&i.status==='Planejado')i.status='Ganhou';save()};window.statusChange=(id,s)=>{state.items.find(x=>x.id===id).status=s;save()};
 window.addItemModal=()=>openModal(`<h3>Novo item</h3><div class="form-grid"><div class="field"><label>Nome</label><input id="niName"></div><div class="field"><label>Categoria</label><input id="niCat" placeholder="Ex.: Roupas"></div><div class="field"><label>Fase</label><input id="niPhase" placeholder="Ex.: 12–18m"></div><div class="field"><label>Tamanho</label><input id="niSize"></div><div class="field"><label>Quantidade-alvo</label><input id="niQty" type="number" min="0" value="1"></div><div class="field"><label>Quando comprar</label><input id="niWhen"></div></div><div class="field" style="margin-top:12px"><label>Observação</label><textarea id="niNote"></textarea></div><div class="modal-foot"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveNewItem()">Adicionar</button></div>`);
 window.saveNewItem=()=>{if(!$('#niName').value.trim())return;state.items.push(I('u'+Date.now(),$('#niName').value.trim(),$('#niCat').value||'Outros',$('#niSize').value||'Único',+$('#niQty').value||0,$('#niWhen').value||'Quando necessário',false,$('#niNote').value||'', $('#niPhase').value||'Nascimento'));closeModal();save()};
@@ -679,3 +686,4 @@ renderNav();
 $('#pageTitle').textContent=greetingByHour();
 restoreLogin();
 if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
+document.addEventListener('click',()=>{openMultiFilter='';document.querySelectorAll('.multi-dropdown[open]').forEach(d=>d.removeAttribute('open'))});
