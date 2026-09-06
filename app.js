@@ -117,7 +117,7 @@ const defaultItems=[
  I('s2','Colchão firme e adequado ao berço','Sono','Único',1,'2º trimestre',true,'Deve encaixar corretamente, sem folgas.','Nascimento','Pesquisar'),
  I('s3','Lençol com elástico','Sono','Berço',4,'3º trimestre',true,'Quatro permitem rodízio em caso de vazamentos e lavagens.','Nascimento'),
  I('s5','Protetor impermeável de colchão','Sono','Berço',2,'3º trimestre',true,'Dois facilitam troca e lavagem.','Nascimento'),
- I('s4','Saco de dormir apropriado','Sono','0–6m',2,'3º trimestre',false,'Opcional; dois permitem rodízio. Seguir tamanho/peso do fabricante.','Nascimento','Pesquisar'),
+ I('s4','Saco de dormir apropriado','Sono','0–6m',0,'Não comprar inicialmente',false,'É uma alternativa segura a cobertas soltas, mas não é obrigatório se a roupa de dormir adequada ao clima resolver. Importante: ninho/redutor/protetor não deve ser usado dentro do berço durante o sono.','Nascimento','Esperar'),
  I('s6','Manta / cueiro para colo e passeio','Sono','Único',3,'3º trimestre',true,'Para colo/passeio; não deixar solto no berço durante o sono.','Nascimento'),
  I('s9','Cobertor de microfibra','Sono','Único',2,'3º trimestre',true,'Útil para colo, carrinho e saídas em dias frios. Como o nascimento é previsto para abril em Viçosa, vale ter dois para rodízio. Não deixar solto no berço durante o sono.','Nascimento'),
  I('s7','Luz noturna suave','Sono','Único',1,'3º trimestre',false,'Facilita trocas noturnas sem iluminar demais o quarto.','Nascimento','Pesquisar'),
@@ -128,28 +128,26 @@ const defaultItems=[
  I('x4','Ninho redutor para dormir','Sono','Único',0,'Não comprar para sono',false,'Não usar como superfície principal de sono.','Nascimento','Evitar'),
 
  // FRALDAS — o alvo de pacotes é sincronizado com o Chá e usa a referência de consumo da Huggies.
- I('d1','Fralda descartável','Fraldas','RN · pacote',5,'3º trimestre / chá',true,'Meta de pacotes sincronizada com o Chá. Referência Huggies: RN usa mais trocas/dia, mas costuma ficar pouco tempo neste tamanho.','Nascimento'),
- I('d2','Fralda descartável','Fraldas','P · pacote',11,'Chá / perto do parto',true,'Meta sincronizada com o Chá. Planejamento: cerca de 8 fraldas/dia; ajuste depois pelo peso e consumo real.','0–4m'),
- I('d3','Fralda descartável','Fraldas','M · pacote',22,'Chá / após nascer',true,'Meta sincronizada com o Chá. Planejamento: cerca de 8 fraldas/dia nesta fase.','5–10m','Esperar'),
- I('d4','Fralda descartável','Fraldas','G · pacote',33,'Chá / após nascer',true,'Meta sincronizada com o Chá. Planejamento: cerca de 7 fraldas/dia e fase longa.','11–20m','Esperar'),
- I('d5','Fralda descartável','Fraldas','XG · pacote',9,'Chá / após nascer',true,'Meta sincronizada com o Chá. Planejamento: cerca de 5 fraldas/dia; início depende do peso e da modelagem.','21–24m','Esperar'),
+ I('d1','Fralda descartável','Fraldas','RN · pacote ref. 40 un',5,'3º trimestre / chá',true,'5 pacotes-ref. = cerca de 200 unidades. É apenas o estoque RN inicial, não as fraldas de 0–3 meses. Huggies estima ~220 fraldas/mês no início; não estocar todo esse volume em RN porque a troca de tamanho depende do peso. Se o pacote tiver 80 unidades, conte como 2 pacotes-ref.','Nascimento'),
+ I('d2','Fralda descartável','Fraldas','P · pacote ref. 40 un',11,'Chá / perto do parto',true,'11 pacotes-ref. = cerca de 440 unidades. Junto com o RN inicial, o planejamento soma ~640 fraldas para os primeiros meses. Huggies estima ~180/mês por volta de 2–4 meses. Ajustar pelo peso e pelo tamanho real usado.','0–4m'),
+ I('d3','Fralda descartável','Fraldas','M · pacote ref. 40 un',23,'Após nascer / comprar em etapas',true,'23 pacotes-ref. ≈ 920 unidades para uma fase de ~6 meses. Huggies usa como referência cerca de 5 fraldas/dia (~150/mês) nessa faixa. Não comprar tudo de uma vez.','5–10m','Esperar'),
+ I('d4','Fralda descartável','Fraldas','G · pacote ref. 40 un',38,'Após nascer / comprar em etapas',true,'38 pacotes-ref. ≈ 1.520 unidades para uma fase longa. Huggies usa cerca de 5 fraldas/dia (~150/mês) como referência. Comprar progressivamente, porque peso/modelagem podem antecipar ou atrasar a troca.','11–20m','Esperar'),
+ I('d5','Fralda descartável','Fraldas','XG · pacote ref. 40 un',12,'Após nascer / comprar em etapas',true,'12 pacotes-ref. ≈ 480 unidades para 4 meses a ~4 fraldas/dia. O início do XG depende do peso e da modelagem da marca.','21–24m','Esperar'),
  I('d6','Fralda para água / piscina','Fraldas','6m+',1,'Quando houver piscina/praia',false,'Comprar apenas se entrar na rotina.','6–24m','Esperar'),
 
  // HIGIENE E TROCAS
  I('h1','Algodão em discos ou bolas','Higiene','Pacote',3,'3º trimestre',true,'Para higiene com água morna nas trocas.','Nascimento'),
  I('h2','Gaze estéril','Higiene','Pacote',2,'3º trimestre',false,'Útil apenas quando houver orientação específica.','Nascimento'),
  I('h3','Álcool 70%','Higiene','Frasco pequeno',1,'3º trimestre',false,'Para o coto somente conforme orientação da maternidade/equipe de saúde.','Nascimento'),
- I('h4','Sabonete líquido suave','Higiene','Frasco',1,'3º trimestre',true,'Começar com um; não há necessidade de estocar cosméticos.','Nascimento'),
- I('h18','Shampoo suave para bebê','Higiene','Frasco',1,'3º trimestre',false,'Começar com apenas um frasco e observar a tolerância da pele/couro cabeludo; não precisa estocar.','Nascimento'),
- I('h19','Condicionador suave infantil','Higiene','Frasco',1,'Após nascer / se necessário',false,'Opcional no início; comprar se fizer sentido para o cabelo e conforme orientação pediátrica.','0–6m','Esperar'),
+ I('h4','Sabonete líquido suave','Higiene','1 frasco em uso',1,'3º trimestre / repor quando acabar',true,'Alvo = manter 1 frasco em uso, não dizer que 1 frasco dura 3 meses. SBP recomenda produto líquido infantil suave, sem perfume; a frequência de banho pode variar. Repor quando estiver acabando.','Nascimento'),
+ I('h18','Shampoo suave para bebê','Higiene','Frasco',1,'Após o 1º mês / se necessário',false,'Não é item urgente para o primeiro mês: água pode ser suficiente para o cabelo. Se entrar na rotina, manter só 1 frasco e repor quando acabar.','0–3m','Esperar'),
+ I('h19','Condicionador suave infantil','Higiene','Frasco',0,'Só se houver necessidade',false,'Não é essencial para recém-nascido. Deixar fora da compra inicial e adquirir apenas se o cabelo realmente precisar.','0–6m','Esperar'),
  I('h5','Lenço umedecido sem perfume/álcool','Higiene','Pacote',3,'Perto do parto',false,'Útil fora de casa; em casa, água e algodão podem ser suficientes.','Nascimento'),
- I('h6','Fralda de boca / pano pequeno','Higiene','Único',12,'2º trimestre',true,'Usa bastante em mamadas, baba e pequenas limpezas.','Nascimento'),
- I('h12','Fralda de ombro / pano grande','Higiene','Único',6,'2º trimestre',true,'Para colo, arroto e proteção da roupa.','Nascimento'),
- I('h7','Toalha com capuz','Higiene','Único',3,'3º trimestre',true,'Três dão boa rotação.','Nascimento'),
- I('h13','Toalhinha / pano de banho','Higiene','Único',6,'3º trimestre',false,'Útil para banho e pequenas limpezas.','Nascimento'),
+ I('h6','Fralda de boca / pano pequeno','Higiene','Único',8,'2º trimestre',true,'Não é toalha de banho: serve para mamadas, baba e pequenas limpezas. Oito dão boa rotação sem exagero.','Nascimento'),
+ I('h12','Fralda de ombro / pano grande','Higiene','Único',4,'2º trimestre',true,'Não é toalha de banho: serve para colo, arroto e proteção da roupa. Quatro são uma base prática.','Nascimento'),
+ I('h7','Toalha de banho macia (com capuz opcional)','Higiene','Único',2,'3º trimestre',true,'Duas toalhas dão rodízio enquanto uma está lavando. NHS orienta ter 2 toalhas prontas para o banho; capuz é prático, mas não obrigatório.','Nascimento'),
  I('h8','Banheira','Higiene','Único',1,'3º trimestre',true,'Priorizar estabilidade e facilidade de limpeza.','Nascimento','Pesquisar'),
- I('h9','Trocador impermeável fixo','Higiene','Único',1,'3º trimestre',true,'Pode ser simples e lavável.','Nascimento'),
- I('h14','Trocador portátil','Higiene','Único',1,'3º trimestre',false,'Útil na bolsa para sair de casa.','Nascimento'),
+ I('h14','Trocador impermeável portátil','Higiene','Único',1,'3º trimestre',true,'Um só pode servir em casa e na bolsa. Huggies recomenda superfície/trocador limpo e seguro; a AAP ressalta que mesa de troca não é obrigatória.','Nascimento'),
  I('h10','Cortador/tesoura de unha infantil','Higiene','Único',1,'3º trimestre',true,'Uma unidade é suficiente.','Nascimento'),
  I('h11','Escova macia de cabelo','Higiene','Único',1,'3º trimestre',true,'Uma unidade macia é suficiente para o início.','Nascimento'),
  I('h15','Creme barreira para assadura','Higiene','Tubo',2,'3º trimestre',true,'Um em uso e um reserva; ajustar à orientação pediátrica.','Nascimento'),
@@ -170,7 +168,6 @@ const defaultItems=[
  I('ps1','Bebê conforto certificado','Passeio','Nascimento',1,'2º trimestre',true,'Essencial para transporte em carro; conferir certificação e instalação.','Nascimento','Pesquisar'),
  I('ps2','Carrinho com reclínio adequado','Passeio','Único',1,'2º/3º trimestre',true,'Comparar peso, porta-malas, reclínio e rotina.','Nascimento','Pesquisar'),
  I('ps3','Mochila / bolsa do bebê','Passeio','Único',1,'3º trimestre',true,'Uma bolsa funcional resolve a rotina.','Nascimento'),
- I('ps5','Capa de chuva para carrinho','Passeio','Compatível',1,'Junto do carrinho',false,'Útil para deslocamentos.','Nascimento','Pesquisar'),
  I('ps6','Manta leve para passeio','Passeio','Único',2,'3º trimestre',false,'Para colo/carrinho, conforme clima.','Nascimento'),
  I('ps7','Sling / canguru ergonômico','Passeio','Único',1,'Após nascer',false,'Opcional; usar respeitando posição, vias aéreas e manual.','0–12m','Pesquisar'),
  I('ps8','Organizador de carrinho','Passeio','Único',1,'Após nascer',false,'Conveniente, não essencial.','0–12m','Esperar'),
@@ -249,11 +246,11 @@ const babyVaccines=[
 ];
 
 const DIAPER_REF=[
- {size:'RN',age:'início da vida',daily:'9–10/dia',monthly:'~270–300/mês',share:.06,note:'Estoque pequeno: o bebê pode perder RN rapidamente.'},
- {size:'P',age:'aprox. 2–4 meses',daily:'8/dia',monthly:'~240/mês',share:.14,note:'Meta de planejamento do Ninho, com folga sem exagerar no estoque.'},
- {size:'M',age:'aprox. 5–10 meses',daily:'8/dia',monthly:'~240/mês',share:.28,note:'Meta de planejamento com margem de segurança para uma fase importante.'},
- {size:'G',age:'aprox. 11–20 meses',daily:'7/dia',monthly:'~210/mês',share:.41,note:'Fase geralmente longa; o Ninho mantém a maior fatia do chá em G.'},
- {size:'XG',age:'aprox. 21–24 meses',daily:'5/dia',monthly:'~150/mês',share:.11,note:'Pode começar antes/depois conforme peso, corpo e modelagem da marca.'}
+ {size:'RN',age:'início da vida',daily:'até 9–10/dia',monthly:'~220/mês (referência Huggies)',share:.06,note:'Comprar RN com cautela: o bebê pode perder o tamanho rápido.'},
+ {size:'P',age:'aprox. 2–4 meses',daily:'~6/dia',monthly:'~180/mês',share:.14,note:'Referência Huggies; tamanho real depende do peso, não apenas da idade.'},
+ {size:'M',age:'aprox. 5–10 meses',daily:'~5/dia',monthly:'~150/mês',share:.28,note:'Referência Huggies; comprar em etapas.'},
+ {size:'G',age:'aprox. 11–20 meses',daily:'~5/dia',monthly:'~150/mês',share:.41,note:'Fase geralmente longa, mas comprar progressivamente.'},
+ {size:'XG',age:'aprox. 21–26 meses',daily:'~4/dia',monthly:'~120/mês',share:.11,note:'Pode começar antes/depois conforme peso, corpo e modelagem da marca.'}
 ];
 const DIAPER_ITEM_SIZE={d1:'RN',d2:'P',d3:'M',d4:'G',d5:'XG'};
 const SHOWER_DIAPER_REF=[
@@ -332,6 +329,7 @@ const AGROS_SERVICES={
 };
 
 const STORE_KEY='ninho-bebe-v4';
+const RETIRED_DEFAULT_IDS=new Set(['h9','h13','ps5']);
 const FEEDING_TARGETS={
  al1:{'Ainda não definido':4,'Aleitamento materno':2,'Misto':4,'Fórmula':6},
  al2:{'Ainda não definido':4,'Aleitamento materno':2,'Misto':4,'Fórmula':6},
@@ -345,7 +343,7 @@ function normalizeState(raw){
  const defaultIds=new Set(defaultItems.map(i=>i.id));
  const previousById=new Map((base.items||[]).map(i=>[i.id,i]));
  const migratedDefaults=defaultItems.map(d=>{const old=previousById.get(d.id);return old?{...d,have:Number(old.have||0),status:old.status||d.status,price:Number(old.price||0)}:{...d}});
- const customItems=(base.items||[]).filter(i=>!defaultIds.has(i.id));
+ const customItems=(base.items||[]).filter(i=>!defaultIds.has(i.id)&&!RETIRED_DEFAULT_IDS.has(i.id));
  return {
    ...base,
    items:[...migratedDefaults,...customItems],
