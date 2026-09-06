@@ -440,10 +440,74 @@ function stats(){const relevant=state.items.filter(i=>targetFor(i)>0);const tota
 function phaseLabel(){return weeks<14?'1º trimestre':weeks<28?'2º trimestre':'3º trimestre'}
 function metric(ic,val,label){return `<div class="card metric"><div class="metric-top"><div class="metric-icon">${icons[ic]}</div></div><strong>${val}</strong><span>${label}</span></div>`}
 
+const BABY_WEEK_GUIDE={
+  4:{cm:'0,2',compare:'uma semente de papoula',detail:'A implantação está acontecendo e as estruturas iniciais da gestação começam a se organizar.'},
+  5:{cm:'0,3',compare:'uma semente de gergelim',detail:'O tubo neural e as estruturas que formarão coração e circulação estão em desenvolvimento.'},
+  6:{cm:'0,5',compare:'uma lentilha',detail:'Os brotinhos dos braços e pernas aparecem e o coração já está em desenvolvimento.'},
+  7:{cm:'1,0',compare:'um mirtilo',detail:'A cabeça cresce rapidamente e os brotinhos dos membros ficam mais definidos.'},
+  8:{cm:'1,6',compare:'uma framboesa',detail:'Os braços alongam, os dedos começam a se formar e olhos, orelhas, lábio superior e nariz ficam mais reconhecíveis.'},
+  9:{cm:'1,8',compare:'uma uva',detail:'Os braços crescem, cotovelos aparecem e os dedinhos dos pés começam a ficar visíveis.'},
+  10:{cm:'3,1',compare:'um morango',detail:'A cabeça fica mais arredondada e os dedos das mãos e pés ficam mais separados.'},
+  11:{cm:'4,1',compare:'um figo',detail:'O bebê entra na fase fetal e continua desenvolvendo órgãos, face e genitais externos.'},
+  12:{cm:'5,4',compare:'um limão pequeno',detail:'O rosto ganha um perfil mais definido e as unhas começam a se formar.'},
+  13:{cm:'7,4',compare:'uma ameixa grande',detail:'O corpo cresce e vai ficando mais proporcional à cabeça.'},
+  14:{cm:'8,7',compare:'um pêssego',detail:'Pescoço e tronco alongam e os movimentos ficam mais coordenados.'},
+  15:{cm:'10,1',compare:'uma maçã pequena',detail:'O esqueleto segue amadurecendo e o bebê movimenta braços e pernas.'},
+  16:{cm:'11,6',compare:'um abacate pequeno',detail:'A musculatura ganha força e os movimentos ficam mais ativos.'},
+  17:{cm:'13,0',compare:'uma pera',detail:'Começa um ganho maior de gordura corporal e o corpo cresce em comprimento.'},
+  18:{cm:'14,2',compare:'um pimentão',detail:'A audição continua se desenvolvendo e as feições ficam mais definidas.'},
+  19:{cm:'15,3',compare:'uma manga pequena',detail:'A pele e as estruturas de proteção seguem amadurecendo.'},
+  20:{cm:'16,4',compare:'uma banana',detail:'Metade da gestação: o bebê cresce rápido e os movimentos tendem a ficar mais perceptíveis.'},
+  21:{cm:'26,7',compare:'uma cenoura grande',detail:'A partir daqui, referências costumam usar também a medida da cabeça ao calcanhar.'},
+  22:{cm:'27,8',compare:'um mamão pequeno',detail:'As feições ficam mais definidas e o bebê segue ganhando massa.'},
+  23:{cm:'28,9',compare:'uma espiga de milho',detail:'A audição fica mais refinada e os movimentos continuam aumentando.'},
+  24:{cm:'30,0',compare:'uma berinjela',detail:'Os pulmões seguem amadurecendo e os ciclos de sono ficam mais organizados.'},
+  25:{cm:'34,6',compare:'uma couve-flor pequena',detail:'O bebê ganha gordura e a pele começa a parecer menos fina.'},
+  26:{cm:'35,6',compare:'uma alface',detail:'Pulmões e sistema nervoso continuam amadurecendo.'},
+  27:{cm:'36,6',compare:'um repolho pequeno',detail:'O cérebro cresce bastante e o bebê segue ganhando peso.'},
+  28:{cm:'37,6',compare:'uma berinjela grande',detail:'Começa o 3º trimestre, com ganho de peso mais intenso.'},
+  29:{cm:'38,6',compare:'uma abóbora pequena',detail:'Chutes e alongamentos podem ficar mais fortes e frequentes.'},
+  30:{cm:'39,9',compare:'um pepino grande',detail:'O corpo fica mais cheinho e a pele vai ficando mais lisa.'},
+  31:{cm:'41,1',compare:'um coco pequeno',detail:'Sistema nervoso e pulmões seguem amadurecendo.'},
+  32:{cm:'42,4',compare:'um melão pequeno',detail:'O bebê ocupa bastante espaço e continua acumulando gordura.'},
+  33:{cm:'43,7',compare:'um abacaxi pequeno',detail:'O ganho de peso acelera e os ossos continuam fortalecendo.'},
+  34:{cm:'45,0',compare:'um melão',detail:'Os pulmões estão mais maduros e o corpinho mais arredondado.'},
+  35:{cm:'46,2',compare:'um melão-cantalupo',detail:'Há menos espaço para grandes movimentos, mas o bebê continua ativo.'},
+  36:{cm:'47,4',compare:'um pé de alface grande',detail:'A maioria dos órgãos está madura e o foco é ganhar peso.'},
+  37:{cm:'48,6',compare:'uma acelga',detail:'A gestação entra no período a termo inicial.'},
+  38:{cm:'49,8',compare:'um alho-poró grande',detail:'O bebê continua ganhando gordura e se preparando para nascer.'},
+  39:{cm:'50,7',compare:'uma mini melancia',detail:'Pulmões e cérebro continuam amadurecendo até o final da gestação.'},
+  40:{cm:'51,2',compare:'uma abóbora média',detail:'O bebê está pronto para o encontro com vocês.'}
+};
+function babyStageInfo(){
+  const wk=clamp(weeks,4,40);
+  return BABY_WEEK_GUIDE[wk]||BABY_WEEK_GUIDE[8];
+}
+function renderBabyTodayCard(){
+  const info=babyStageInfo();
+  return `<div class="baby-today">
+    <div class="baby-loop" aria-label="Ilustração animada do desenvolvimento do bebê">
+      <div class="loop-orbit one"></div><div class="loop-orbit two"></div>
+      <div class="loop-heart">${icons.heart}</div>
+      <div class="baby-shape"><span class="baby-head"></span><span class="baby-body"></span></div>
+      <div class="baby-ruler"><span>~ ${info.cm} cm</span></div>
+    </div>
+    <div class="baby-today-copy">
+      <span class="baby-kicker">Como Ian ou Luísa está hoje</span>
+      <h3>${weeks} semanas${days?` e ${days} dias`:''}</h3>
+      <p>O tamanho de referência nesta semana é de aproximadamente <b>${info.cm} cm</b> — mais ou menos como <b>${info.compare}</b>.</p>
+      <div class="baby-pills"><span class="baby-pill">~ ${info.cm} cm</span><span class="baby-pill soft">${info.compare}</span></div>
+      <div class="baby-stage-note">${info.detail}</div>
+      <small>Comparação ilustrativa. A medida real do bebê é a do ultrassom. Na 8ª semana, o NHS cita ~16 mm; a Mayo Clinic cita 11–14 mm ao final da semana.</small>
+      <div class="baby-source-links"><a target="_blank" href="https://www.nhs.uk/best-start-in-life/pregnancy/week-by-week-guide-to-pregnancy/1st-trimester/week-8/">NHS</a><a target="_blank" href="https://www.mayoclinic.org/healthy-lifestyle/pregnancy-week-by-week/in-depth/prenatal-care/art-20045302">Mayo Clinic</a></div>
+    </div>
+  </div>`;
+}
+
 function renderDashboard(){const st=stats();$('#view-dashboard').innerHTML=`\n ${!canEdit()?'<div class="notice readonly-note"><b>Modo visitante.</b> Você pode navegar e visualizar os dados, mas não pode cadastrar ou alterar informações.</div>':''}
  <div class="hero">
   <div class="card preg-card"><div class="baby-decor baby-decor-1">${icons.baby}</div><div class="baby-decor baby-decor-2">${icons.bottle}</div><div class="spark s1">✦</div><div class="spark s2">·</div><div class="preg-content"><div class="week-pill">${icons.heart} ${phaseLabel()}</div><div class="week-number">${weeks}<small> semanas${days?` + ${days}d`:''}</small></div><p><b>${PROFILE.babyNames}</b> está a caminho. ${PROFILE.mother} está com ${weeks} semanas${days?` e ${days} dias`:''}; o enxoval segue neutro, por fases e sem excesso.</p><div class="progress"><span style="width:${gestPct}%"></span></div><div class="progress-label"><span>começo</span><span>${gestPct}% da gestação</span><span>parto · abr/2027</span></div></div></div>
-  <div class="card quick"><div><h3>Próximos passos</h3><div class="quick-list"><div class="quick-item"><i class="quick-dot"></i><div><b>Pré-natal em dia</b><span>Registre consultas, exames e anexos na guia Médico.</span></div></div><div class="quick-item"><i class="quick-dot"></i><div><b>Vacinas separadas</b><span>Agora há uma guia da mãe e outra do bebê.</span></div></div><div class="quick-item"><i class="quick-dot"></i><div><b>Enxoval por fase</b><span>O inventário agora acompanha do nascimento aos 24 meses.</span></div></div></div></div><button class="btn soft" onclick="go('medico')">Abrir acompanhamento</button></div>
+  <div class="card quick baby-quick"><div>${renderBabyTodayCard()}<div class="quick-divider"></div><h3>Próximos passos</h3><div class="quick-list"><div class="quick-item"><i class="quick-dot"></i><div><b>Pré-natal em dia</b><span>Registre consultas, exames e anexos na guia Médico.</span></div></div><div class="quick-item"><i class="quick-dot"></i><div><b>Vacinas separadas</b><span>Agora há uma guia da mãe e outra do bebê.</span></div></div><div class="quick-item"><i class="quick-dot"></i><div><b>Enxoval por fase</b><span>O inventário acompanha do nascimento aos 24 meses.</span></div></div></div></div><button class="btn soft" onclick="go('medico')">Abrir acompanhamento</button></div>
  </div>
  <div class="metrics">${metric('bag',`${st.pct}%`,'inventário coberto')}${metric('gift',st.gifts,'itens recebidos')}${metric('wallet',money(st.spent),'já gasto')}${metric('calendar',daysToDue,'dias até o parto')}</div>
  <div class="grid-2">
