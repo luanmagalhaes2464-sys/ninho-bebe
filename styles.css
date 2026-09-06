@@ -95,3 +95,12 @@
 .logo img,.avatar .bubble img,.agent-baby img,.bot-icon img{object-fit:cover;object-position:center 38%}
 .logo img,.avatar .bubble img{transform:scale(1.06)}
 .agent-baby{width:110px;height:110px;border-radius:26px}
+
+/* --- Destaque VSR / bronquiolite --- */
+.vsr-highlight{display:grid;grid-template-columns:54px 1fr;gap:14px;align-items:start;margin-bottom:16px;padding:18px;border:1px solid #cfe5d6;border-radius:20px;background:linear-gradient(135deg,#f1faf4,#fff)}
+.vsr-icon{width:54px;height:54px;border-radius:16px;display:grid;place-items:center;background:#dff1e4;color:#426f50}
+.vsr-icon svg{width:24px;height:24px}
+.vsr-highlight h2{margin:5px 0 8px;font-size:18px}
+.vsr-highlight p{margin:6px 0;color:#596a61;font-size:12px;line-height:1.55}
+.vsr-highlight small{display:block;margin-top:8px;color:#78877f;font-size:10px}
+@media(max-width:760px){.vsr-highlight{grid-template-columns:42px 1fr;padding:14px}.vsr-icon{width:42px;height:42px;border-radius:13px}.vsr-highlight h2{font-size:16px}}
