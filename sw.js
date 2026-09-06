@@ -1,5 +1,5 @@
-const CACHE = 'ninho-v14-mascote-saudacao';
-const ASSETS = ['./', './index.html', './styles.css', './app.js', './manifest.webmanifest', './mascote-ninho.webp'];
+const CACHE = 'ninho-v15-mascote-real-multiselect';
+const ASSETS = ['./', './index.html', './styles.css', './app.js', './manifest.webmanifest', './mascote-ninho-v2.webp'];
 
 self.addEventListener('install', event => {
   self.skipWaiting();
