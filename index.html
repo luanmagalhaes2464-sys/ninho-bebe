@@ -10,7 +10,22 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body>
+<body class="auth-locked">
+<div class="auth-gate" id="authGate">
+  <div class="auth-card">
+    <div class="auth-mark">♡</div>
+    <div class="auth-brand">Ninho</div>
+    <h2>Ian ou Luísa</h2>
+    <p>Entre para acessar o acompanhamento da gestação e do bebê.</p>
+    <form class="auth-form" onsubmit="loginNinho(event)">
+      <div class="field"><label>Usuário</label><select id="loginUser" autocomplete="username"><option value="familia">familia</option><option value="visitante">visitante</option></select></div>
+      <div class="field"><label>PIN</label><input id="loginPin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="Digite o PIN" required></div>
+      <div class="auth-error" id="loginError"></div>
+      <button class="btn primary auth-submit" id="loginButton" type="submit">Entrar no Ninho</button>
+    </form>
+    <small>Família pode cadastrar e editar. Visitante acessa somente para visualizar.</small>
+  </div>
+</div>
 <div class="app">
   <aside class="sidebar">
     <div class="brand"><div class="logo" id="logoIcon"></div><div class="brand-text"><strong>Ninho</strong><span>Ian ou Luísa</span></div></div>
