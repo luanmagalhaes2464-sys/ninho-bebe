@@ -360,22 +360,28 @@ function normalizeState(raw){
 }
 const priorState=JSON.parse(localStorage.getItem(STORE_KEY)||'null')||JSON.parse(localStorage.getItem('ninho-bebe-v3')||'null')||JSON.parse(localStorage.getItem('ninho-bebe-v2')||'null')||JSON.parse(localStorage.getItem('ninho-bebe-v1')||'null');
 let state=normalizeState(priorState);
-let cloudEnabled=false, syncTimer=null, syncPin='', syncBusy=false, authRole='anonymous';
+let cloudEnabled=false, syncTimer=null, syncPin=sessionStorage.getItem('ninho-pin')||'', syncBusy=false, authRole=sessionStorage.getItem('ninho-role')||'anonymous';
 function canEdit(){return authRole==='editor'}
 function guardEdit(){if(canEdit())return true;toast('Modo visitante: somente visualização');return false}
 function setLoginError(msg=''){const el=$('#loginError');if(!el)return;el.textContent=msg;el.classList.toggle('show',Boolean(msg))}
 function unlockApp(){document.body.classList.remove('auth-locked');$('#authGate')?.classList.add('hidden');applyAccessModeUI()}
 function lockApp(){document.body.classList.add('auth-locked');$('#authGate')?.classList.remove('hidden')}
-window.switchAccess=()=>{syncPin='';authRole='anonymous';sessionStorage.removeItem('ninho-pin');sessionStorage.removeItem('ninho-role');lockApp();setLoginError('');const p=$('#loginPin');if(p){p.value='';setTimeout(()=>p.focus(),80)}};
+window.logoutNinho=()=>{syncPin='';authRole='anonymous';sessionStorage.removeItem('ninho-pin');sessionStorage.removeItem('ninho-role');document.body.classList.remove('readonly');lockApp();setLoginError('');const p=$('#loginPin');if(p){p.value='';setTimeout(()=>p.focus(),80)}};
+window.switchAccess=window.logoutNinho;
 function applyAccessModeUI(){
   document.body.classList.toggle('readonly',authRole==='viewer');
   const badge=$('#accessBadge');
   if(badge){
     badge.textContent=canEdit()?'Família · edição':'Visitante · visualização';
     badge.className='access-badge '+(canEdit()?'edit':'view');
-    badge.title='Clique para trocar de usuário';
-    badge.onclick=switchAccess;
+    badge.title=canEdit()?'Família: pode visualizar e editar':'Visitante: somente visualização';
+    badge.onclick=null;
   }
+  const roleName=canEdit()?'Família':'Visitante';
+  const roleDesc=canEdit()?'Pode visualizar e editar':'Somente visualização';
+  const sideRole=$('#sidebarRole'); if(sideRole)sideRole.textContent=roleName;
+  const sideDesc=$('#sidebarRoleDesc'); if(sideDesc)sideDesc.textContent=roleDesc;
+  const mobileRole=$('#mobileRole'); if(mobileRole)mobileRole.textContent=roleName;
   if(authRole==='viewer'){
     const mutating=['addItemModal','q(','statusChange','setFeedingMode','addWatchModal','setBudget','setPrice','setGuests','toggleVax','editVax','generatePrenatal','generateBabyVisits','medicalModal','deleteMedical'];
     document.querySelectorAll('button[onclick],input[onchange],select[onchange],textarea[onchange]').forEach(el=>{
@@ -632,5 +638,34 @@ function agentAnswer(q){const t=q.toLowerCase(),st=stats();
 function renderAll(){renderDashboard();renderEnxoval();renderPromos();renderBudget();renderTea();renderPreg();renderMotherVax();renderBabyVax();renderMedical();renderAgent();applyAccessModeUI();}
 function openModal(html){$('#modal').innerHTML=html;$('#modalBack').classList.add('open')}window.closeModal=()=>$('#modalBack').classList.remove('open');$('#modalBack').onclick=e=>{if(e.target.id==='modalBack')closeModal()};
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-renderNav();lockApp();setTimeout(()=>$('#loginPin')?.focus(),120);
+async function restoreLogin(){
+  if(!syncPin||!['editor','viewer'].includes(authRole)){
+    syncPin='';authRole='anonymous';lockApp();setTimeout(()=>$('#loginPin')?.focus(),120);return;
+  }
+  try{
+    const cfg=await fetch('/api/config',{cache:'no-store'}).then(r=>r.ok?r.json():null);
+    if(!cfg?.database)throw new Error('database');
+    cloudEnabled=true;
+    const res=await fetch('/api/state',{headers:{...authHeaders()},cache:'no-store'});
+    if(!res.ok)throw new Error('auth');
+    const data=await res.json();
+    authRole=data.role||authRole;
+    sessionStorage.setItem('ninho-role',authRole);
+    if(data.state){
+      state=normalizeState(data.state);
+      localStorage.setItem(STORE_KEY,JSON.stringify(state));
+    }
+    renderAll();
+    unlockApp();
+  }catch(e){
+    syncPin='';authRole='anonymous';
+    sessionStorage.removeItem('ninho-pin');
+    sessionStorage.removeItem('ninho-role');
+    lockApp();
+    setLoginError('Sua sessão expirou. Entre novamente.');
+    setTimeout(()=>$('#loginPin')?.focus(),120);
+  }
+}
+renderNav();
+restoreLogin();
 if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
