@@ -289,7 +289,7 @@ function applyAccessModeUI(){
   }
   if(!canEdit()){
     const mutating=['addItemModal','q(','statusChange','setFeedingMode','addWatchModal','setBudget','setPrice','setGuests','toggleVax','editVax','generatePrenatal','generateBabyVisits','medicalModal','deleteMedical'];
-    $('button[onclick],input[onchange],select[onchange],textarea[onchange]').forEach(el=>{
+    document.querySelectorAll('button[onclick],input[onchange],select[onchange],textarea[onchange]').forEach(el=>{
       const code=(el.getAttribute('onclick')||'')+(el.getAttribute('onchange')||'');
       if(mutating.some(x=>code.includes(x))) el.disabled=true;
     });
