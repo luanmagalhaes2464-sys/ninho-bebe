@@ -30,6 +30,11 @@
   <aside class="sidebar">
     <div class="brand"><div class="logo" id="logoIcon"></div><div class="brand-text"><strong>Ninho</strong><span>Ian ou Luísa</span></div></div>
     <nav class="nav" id="navDesktop"></nav>
+    <div class="sidebar-account">
+      <div class="sidebar-account-icon">♡</div>
+      <div class="sidebar-account-copy"><b id="sidebarRole">Família</b><span id="sidebarRoleDesc">Pode visualizar e editar</span></div>
+      <button class="logout-btn" type="button" onclick="logoutNinho()" aria-label="Sair do usuário">Sair</button>
+    </div>
   </aside>
   <main>
     <header class="topbar">
@@ -49,6 +54,7 @@
     <section class="view" id="view-agente"></section>
   </main>
 </div>
+<button class="mobile-logout" type="button" onclick="logoutNinho()" aria-label="Sair do usuário"><span id="mobileRole">Família</span> · Sair</button>
 <nav class="bottom-nav" id="navMobile"></nav>
 <div class="modal-back" id="modalBack"><div class="modal" id="modal"></div></div>
 <div class="toast" id="toast"></div>
