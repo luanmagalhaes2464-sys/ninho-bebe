@@ -1,0 +1,9 @@
+{
+  "name": "Ninho — Ian ou Luísa",
+  "short_name": "Ninho",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f7faf8",
+  "theme_color": "#cfe8d6",
+  "description": "Gestação, vacinas, acompanhamento médico, enxoval até 2 anos, orçamento e chá de fraldas."
+}

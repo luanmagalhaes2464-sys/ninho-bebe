@@ -1,0 +1,16 @@
+{
+  "name": "ninho-ian-ou-luisa",
+  "version": "3.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node --check db.js && node --check app.js"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.0",
+    "express": "^5.1.0",
+    "openai": "^5.0.0"
+  }
+}

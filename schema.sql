@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS ninho_state (
+  id SMALLINT PRIMARY KEY CHECK (id = 1),
+  data JSONB NOT NULL DEFAULT '{}'::jsonb,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
