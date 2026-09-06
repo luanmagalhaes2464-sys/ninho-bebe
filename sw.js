@@ -1,4 +1,4 @@
-const CACHE = 'ninho-v9-humanizado-estacoes';
+const CACHE = 'ninho-v10-filtro-pendentes-higiene';
 const ASSETS = ['./', './index.html', './styles.css', './app.js', './manifest.webmanifest'];
 
 self.addEventListener('install', event => {
