@@ -419,7 +419,37 @@ window.loginNinho=async event=>{
     if(btn){btn.disabled=false;btn.textContent='Entrar no Ninho'}
   }
 };
-function targetFor(i){return FEEDING_TARGETS[i.id]?.[state.feedingMode] ?? Number(i.recommended||0)}
+function baseTargetFor(i){return FEEDING_TARGETS[i.id]?.[state.feedingMode] ?? Number(i.recommended||0)}
+const PHASE_WINDOWS={'Nascimento':[0,1],'0–3m':[0,3],'3–6m':[3,6],'6–9m':[6,9],'9–12m':[9,12],'12–18m':[12,18],'18–24m':[18,24]};
+function phaseUseWindow(phase){const [a,b]=PHASE_WINDOWS[phase]||[0,1];return{start:addMonths(dueDate,a),end:addDays(addMonths(dueDate,b),-1)}}
+function monthClimate(m){if([4,5,6,7].includes(m))return'frio';if([10,11,0,1,2].includes(m))return'quente';return'ameno'}
+function phaseSeasonInfo(phase){
+ const {start,end}=phaseUseWindow(phase);const months=[];const c=new Date(start.getFullYear(),start.getMonth(),1,12);const last=new Date(end.getFullYear(),end.getMonth(),1,12);
+ while(c<=last){months.push(c.getMonth());c.setMonth(c.getMonth()+1)}
+ const counts={frio:0,ameno:0,quente:0};months.forEach(m=>counts[monthClimate(m)]++);
+ const primary=['frio','ameno','quente'].sort((a,b)=>counts[b]-counts[a])[0];
+ const fmt=d=>new Intl.DateTimeFormat('pt-BR',{month:'short'}).format(d).replace('.','');
+ let label=primary==='frio'?'período mais frio em Viçosa':primary==='quente'?'período mais quente em Viçosa':'meia-estação em Viçosa';
+ if(counts.frio&&counts.ameno)label='frio + meia-estação em Viçosa';
+ if(counts.quente&&counts.ameno&&counts.quente>=counts.frio)label='calor + meia-estação em Viçosa';
+ return{primary,label,windowText:`${fmt(start)}–${fmt(end)}`,counts}
+}
+function clothingBias(name){const t=String(name||'').toLowerCase();if(/manga longa|macac|pijama|calça|culote|casaquinho|meias|touca/.test(t))return'frio';if(/manga curta|camiseta|short/.test(t))return'quente';return'neutro'}
+function seasonPriorityInfo(i){
+ const season=phaseSeasonInfo(i.phase);
+ if(i.category!=='Roupas')return{...season,priority:'',adjustment:0,advice:''};
+ const bias=clothingBias(i.name);let priority='equilibrado',adjustment=0,advice='Mesclar peças leves e camadas.';
+ if(season.primary==='frio'){
+  if(bias==='frio'){priority='prioridade alta';adjustment=/macac|pijama/.test(String(i.name).toLowerCase())?2:1;advice='Essa fase pega os meses mais frescos; vale reforçar esta peça.'}
+  else if(bias==='quente'){priority='prioridade média';adjustment=(i.phase==='Nascimento'||i.phase==='0–3m')?0:-1;advice='Ainda é útil para usar por baixo das camadas e em dias amenos.'}
+ }else if(season.primary==='quente'){
+  if(bias==='quente'){priority='prioridade alta';adjustment=1;advice='Essa fase tende a pegar calor; peças leves ganham prioridade.'}
+  else if(bias==='frio'){priority='comprar aos poucos';adjustment=-1;advice='Evite estoque grande e confirme a necessidade perto do uso.'}
+ }
+ return{...season,priority,adjustment,advice}
+}
+function targetFor(i){const base=baseTargetFor(i);const s=seasonPriorityInfo(i);return Math.max(0,base+Number(s.adjustment||0))}
+function renderSeasonPlanner(){return `<div class="season-plan">${['Nascimento','0–3m','3–6m','6–9m','9–12m','12–18m','18–24m'].map(p=>{const s=phaseSeasonInfo(p);return `<div class="season-card ${s.primary}"><b>${p}</b><span>${s.windowText}</span><small>${s.label}</small></div>`}).join('')}</div>`}
 function authHeaders(){if(!syncPin)return {};return canEdit()?{'x-ninho-pin':syncPin}:{'x-ninho-viewer-pin':syncPin}}
 async function apiState(method='GET',body){
  const opts={method,headers:{...authHeaders()}};
@@ -483,38 +513,12 @@ function babyStageInfo(){
   const wk=clamp(weeks,4,40);
   return BABY_WEEK_GUIDE[wk]||BABY_WEEK_GUIDE[8];
 }
-const BABY_MEDIA={
-  8:{
-    title:'File:8w3d with umbilical cord.gif',
-    source:'Wikimedia Commons · CC0',
-    sourceUrl:'https://commons.wikimedia.org/wiki/File:8w3d_with_umbilical_cord.gif'
-  }
-};
-async function loadBabyMedia(){
-  const media=BABY_MEDIA[weeks];
-  const holder=document.querySelector('[data-baby-media]');
-  if(!holder||!media)return;
-  try{
-    const api='https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&prop=imageinfo&iiprop=url|extmetadata&titles='+encodeURIComponent(media.title);
-    const data=await fetch(api,{cache:'force-cache'}).then(r=>r.ok?r.json():Promise.reject(new Error('commons')));
-    const page=Object.values(data?.query?.pages||{})[0];
-    const info=page?.imageinfo?.[0];
-    if(!info?.url)throw new Error('media');
-    holder.innerHTML=`<img class="baby-real-gif" src="${info.url}" alt="Ultrassom real de embrião com 8 semanas e 3 dias" loading="eager" decoding="async"><span class="baby-media-badge">GIF real · 8s3d</span>`;
-    holder.classList.add('media-loaded');
-    const src=document.querySelector('[data-baby-source]');
-    if(src){src.textContent=media.source;src.href=media.sourceUrl;src.hidden=false}
-  }catch(e){
-    holder.classList.add('media-fallback');
-  }
-}
-
-function renderBabyTodayCard(){const info=babyStageInfo();const hasMedia=Boolean(BABY_MEDIA[weeks]);return `<div class="baby-today real-media-baby-card"><div class="baby-real-stage ${hasMedia?'has-media':''}" data-baby-media><div class="baby-media-loading"><span class="pulse-dot"></span><span>Carregando visual real...</span></div></div><div class="baby-today-copy"><span class="baby-kicker">Como ${PROFILE.babyNames} está hoje</span><h3>${weeks} semanas${days?` e ${days} dias`:''}</h3><p>Aproximadamente <b>${info.cm} cm</b> — do tamanho de <b>${info.compare}</b>.</p><div class="baby-evolution">${info.detail}</div><a class="baby-media-source" data-baby-source target="_blank" rel="noopener" hidden></a></div></div>`}
+function renderBabyTodayCard(){const info=babyStageInfo();const visualScale=clamp(.98+Math.max(0,weeks-8)*.008,.96,1.12);return `<div class="baby-today humanized-baby-card"><div class="baby-human-stage" style="--baby-scale:${visualScale}" aria-label="Visual ilustrativo humanizado do bebê na semana atual"><div class="baby-human-image"></div><div class="baby-human-overlay"></div><span class="baby-visual-label">visual ilustrativo · semana ${weeks}</span><div class="baby-size-chip">~ ${info.cm} cm</div></div><div class="baby-today-copy"><span class="baby-kicker">Como ${PROFILE.babyNames} está hoje</span><h3>${weeks} semanas${days?` e ${days} dias`:''}</h3><p>Aproximadamente <b>${info.cm} cm</b> — do tamanho de <b>${info.compare}</b>.</p><div class="baby-evolution">${info.detail}</div></div></div>`}
 
 function renderDashboard(){const st=stats();$('#view-dashboard').innerHTML=`\n ${!canEdit()?'<div class="notice readonly-note"><b>Modo visitante.</b> Você pode navegar e visualizar os dados, mas não pode cadastrar ou alterar informações.</div>':''}
  <div class="hero">
   <div class="card preg-card"><div class="baby-decor baby-decor-1">${icons.baby}</div><div class="baby-decor baby-decor-2">${icons.bottle}</div><div class="spark s1">✦</div><div class="spark s2">·</div><div class="preg-content"><div class="week-pill">${icons.heart} ${phaseLabel()}</div><div class="week-number">${weeks}<small> semanas${days?` + ${days}d`:''}</small></div><p><b>${PROFILE.babyNames}</b> está a caminho. ${PROFILE.mother} está com ${weeks} semanas${days?` e ${days} dias`:''}; o enxoval segue neutro, por fases e sem excesso.</p><div class="progress"><span style="width:${gestPct}%"></span></div><div class="progress-label"><span>começo</span><span>${gestPct}% da gestação</span><span>parto · abr/2027</span></div></div></div>
-  <div class="card quick baby-quick"><div>${renderBabyTodayCard()}<div class="quick-divider"></div><h3>Próximos passos</h3><div class="quick-list"><div class="quick-item"><i class="quick-dot"></i><div><b>Pré-natal em dia</b><span>Registre consultas, exames e anexos na guia Médico.</span></div></div><div class="quick-item"><i class="quick-dot"></i><div><b>Vacinas separadas</b><span>Agora há uma guia da mãe e outra do bebê.</span></div></div><div class="quick-item"><i class="quick-dot"></i><div><b>Enxoval por fase</b><span>O inventário acompanha do nascimento aos 24 meses.</span></div></div></div></div><button class="btn soft" onclick="go('medico')">Abrir acompanhamento</button></div>
+  <div class="card quick baby-quick"><div>${renderBabyTodayCard()}<div class="quick-divider"></div><h3>Próximos passos</h3><div class="quick-list"><div class="quick-item"><i class="quick-dot"></i><div><b>Pré-natal em dia</b><span>Registre consultas, exames e anexos na guia Médico.</span></div></div><div class="quick-item"><i class="quick-dot"></i><div><b>Vacinas separadas</b><span>Agora há uma guia da mãe e outra do bebê.</span></div></div><div class="quick-item"><i class="quick-dot"></i><div><b>Enxoval por estação</b><span>As roupas consideram a época do ano em Viçosa e a fase prevista do bebê.</span></div></div></div></div><button class="btn soft" onclick="go('medico')">Abrir acompanhamento</button></div>
  </div>
  <div class="metrics">${metric('bag',`${st.pct}%`,'inventário coberto')}${metric('gift',st.gifts,'itens recebidos')}${metric('wallet',money(st.spent),'já gasto')}${metric('calendar',daysToDue,'dias até o parto')}</div>
  <div class="grid-2">
@@ -549,7 +553,7 @@ function renderEnxoval(){
  const rows=state.items.filter(i=>(currentCat==='Todos'||i.category===currentCat)&&(currentPhase==='Todos'||i.phase===currentPhase)&&(currentSize==='Todos'||extractSizeTags(i).includes(currentSize))&&(currentWhen==='Todos'||i.when===currentWhen));
  $('#view-enxoval').innerHTML=`
  <div class="card panel"><div class="section-head"><div><h2>Inventário até 2 anos</h2><p>Quantidades são sugestões práticas e conservadoras — não uma regra oficial.</p></div><button class="btn primary" onclick="addItemModal()">${icons.plus} Adicionar item</button></div>
- <div class="notice inventory-note"><b>Alvo = quantidade de rotina para a fase, não mínimo.</b> Vocês não precisam comprar tudo agora; itens futuros continuam marcados como “Esperar”. Para fraldas, o alvo é por pacotes médios e deve ser ajustado ao peso e à marca.</div>
+ <div class="notice inventory-note"><b>Alvo = quantidade de rotina para a fase, não mínimo.</b> Vocês não precisam comprar tudo agora; itens futuros continuam marcados como “Esperar”. Para fraldas, o alvo é por pacotes médios e deve ser ajustado ao peso e à marca. <b>Roupas agora são ajustadas pela época do ano em Viçosa e pela idade prevista do bebê.</b></div>${renderSeasonPlanner()}
  <div class="filter-grid four">
    <div class="field"><label>Categoria</label><select onchange="setCat(this.value)">${cats.map(c=>`<option value="${c}" ${c===currentCat?'selected':''}>${c}</option>`).join('')}</select></div>
    <div class="field"><label>Fase</label><select onchange="setPhase(this.value)">${phases.map(c=>`<option value="${c}" ${c===currentPhase?'selected':''}>${c}</option>`).join('')}</select></div>
@@ -559,7 +563,7 @@ function renderEnxoval(){
  </div>
  <div class="table-wrap"><table class="table"><thead><tr><th>Item</th><th>Fase</th><th>Tamanho</th><th>Alvo</th><th>Tem</th><th>Status</th><th>Quando</th><th>Nota</th></tr></thead><tbody>${rows.map(itemRow).join('')}</tbody></table></div></div>`
 }
-function itemRow(i){return `<tr><td><b>${i.name}</b><br><span class="muted-mini">${i.category}${i.essential?' · essencial':''}</span></td><td><span class="tag">${i.phase}</span></td><td>${i.size}</td><td><b>${targetFor(i)}</b></td><td><div class="qty"><button onclick="q('${i.id}',-1)">−</button><b>${i.have}</b><button onclick="q('${i.id}',1)">+</button></div></td><td><select class="status-select" onchange="statusChange('${i.id}',this.value)">${['Planejado','Pesquisar','Comprado','Ganhou','Esperar','Evitar'].map(s=>`<option ${i.status===s?'selected':''}>${s}</option>`).join('')}</select></td><td>${i.when}</td><td class="note-cell">${i.note}</td></tr>`}
+function itemRow(i){const s=seasonPriorityInfo(i);const seasonLine=i.category==='Roupas'?`<div class="season-mini-block"><span class="season-pill ${s.primary}">${s.priority}</span><small>Uso previsto: ${s.windowText} · ${s.label}.</small><small>${s.advice}</small>${s.adjustment?`<small>Alvo ajustado pelo clima: ${s.adjustment>0?'+':''}${s.adjustment}.</small>`:''}</div>`:'';return `<tr><td><b>${i.name}</b><br><span class="muted-mini">${i.category}${i.essential?' · essencial':''}</span></td><td><span class="tag">${i.phase}</span></td><td>${i.size}</td><td><b>${targetFor(i)}</b></td><td><div class="qty"><button onclick="q('${i.id}',-1)">−</button><b>${i.have}</b><button onclick="q('${i.id}',1)">+</button></div></td><td><select class="status-select" onchange="statusChange('${i.id}',this.value)">${['Planejado','Pesquisar','Comprado','Ganhou','Esperar','Evitar'].map(st=>`<option ${i.status===st?'selected':''}>${st}</option>`).join('')}</select></td><td>${i.when}</td><td class="note-cell">${i.note}${seasonLine}</td></tr>`}
 window.setCat=c=>{currentCat=c;renderEnxoval()};window.setPhase=c=>{currentPhase=c;renderEnxoval()};window.setSizeFilter=c=>{currentSize=c;renderEnxoval()};window.setWhenFilter=c=>{currentWhen=c;renderEnxoval()};window.setFeedingMode=c=>{state.feedingMode=c;save();};window.q=(id,d)=>{const i=state.items.find(x=>x.id===id);i.have=Math.max(0,(i.have||0)+d);if(i.have>0&&i.status==='Planejado')i.status='Ganhou';save()};window.statusChange=(id,s)=>{state.items.find(x=>x.id===id).status=s;save()};
 window.addItemModal=()=>openModal(`<h3>Novo item</h3><div class="form-grid"><div class="field"><label>Nome</label><input id="niName"></div><div class="field"><label>Categoria</label><input id="niCat" placeholder="Ex.: Roupas"></div><div class="field"><label>Fase</label><input id="niPhase" placeholder="Ex.: 12–18m"></div><div class="field"><label>Tamanho</label><input id="niSize"></div><div class="field"><label>Quantidade-alvo</label><input id="niQty" type="number" min="0" value="1"></div><div class="field"><label>Quando comprar</label><input id="niWhen"></div></div><div class="field" style="margin-top:12px"><label>Observação</label><textarea id="niNote"></textarea></div><div class="modal-foot"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveNewItem()">Adicionar</button></div>`);
 window.saveNewItem=()=>{if(!$('#niName').value.trim())return;state.items.push(I('u'+Date.now(),$('#niName').value.trim(),$('#niCat').value||'Outros',$('#niSize').value||'Único',+$('#niQty').value||0,$('#niWhen').value||'Quando necessário',false,$('#niNote').value||'', $('#niPhase').value||'Nascimento'));closeModal();save()};
@@ -618,7 +622,7 @@ function agentAnswer(q){const t=q.toLowerCase(),st=stats();
  if(/agros|plano|nascer saudável|nascer saudavel/.test(t))return 'O Agros informa o programa Nascer Saudável, com encontros de pré-natal em Viçosa, visita de enfermeira após o nascimento nas áreas de abrangência e kit de cuidados do bebê para beneficiárias. Vale confirmar o agendamento diretamente com o plano.';
  return 'Posso responder sobre: semanas de gestação, inventário até 2 anos, presentes, orçamento, promoções, vacinas da Isabela, vacinas do bebê, consultas programadas e explicação de textos/laudos registrados.'}
 
-function renderAll(){renderDashboard();renderEnxoval();renderPromos();renderBudget();renderTea();renderPreg();renderMotherVax();renderBabyVax();renderMedical();renderAgent();setTimeout(loadBabyMedia,0);applyAccessModeUI();}
+function renderAll(){renderDashboard();renderEnxoval();renderPromos();renderBudget();renderTea();renderPreg();renderMotherVax();renderBabyVax();renderMedical();renderAgent();applyAccessModeUI();}
 function openModal(html){$('#modal').innerHTML=html;$('#modalBack').classList.add('open')}window.closeModal=()=>$('#modalBack').classList.remove('open');$('#modalBack').onclick=e=>{if(e.target.id==='modalBack')closeModal()};
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 renderNav();lockApp();setTimeout(()=>$('#loginPin')?.focus(),120);
