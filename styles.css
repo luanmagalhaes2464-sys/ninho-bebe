@@ -66,3 +66,32 @@
 .agent-baby img{object-position:center 42%}
 .bot-icon{background:#eef5ef;border:1px solid #dcefe2}
 .bot-icon img{transform:scale(1.06);object-position:center 42%}
+
+/* --- Multiselect recolhível v2 --- */
+.compact-multi-field{grid-column:auto!important;min-width:0}
+.compact-multi-field>label{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.multi-dropdown{position:relative;width:100%}
+.multi-dropdown>summary{list-style:none;height:46px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 13px;border:1px solid var(--line);border-radius:14px;background:#fff;color:#43534b;font-size:11px;cursor:pointer;user-select:none}
+.multi-dropdown>summary::-webkit-details-marker{display:none}
+.multi-dropdown>summary:hover{border-color:#bdd5c4}
+.multi-dropdown[open]>summary{border-color:#a9cbb3;box-shadow:0 0 0 3px rgba(174,211,184,.13)}
+.multi-chevron{font-size:15px;color:#819188;transition:.18s;line-height:1}
+.multi-dropdown[open] .multi-chevron{transform:rotate(180deg)}
+.multi-panel{position:absolute;z-index:80;top:calc(100% + 7px);left:0;width:min(470px,72vw);max-height:300px;overflow:auto;padding:12px;border:1px solid #dce8e0;border-radius:16px;background:rgba(255,255,255,.98);box-shadow:0 18px 45px rgba(35,66,49,.15);backdrop-filter:blur(14px)}
+.size-dropdown .multi-panel{right:0;left:auto}
+.multi-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:1px 2px 9px;border-bottom:1px solid #edf2ef;margin-bottom:9px}
+.multi-panel-head small{font-size:9.5px;color:#8a9790}
+.multi-panel-head button{border:0;background:transparent;color:var(--green-4);font-size:9.5px;font-weight:800;padding:5px 7px;border-radius:8px}
+.multi-panel-head button:hover{background:var(--green-2)}
+.multi-options{display:flex;flex-wrap:wrap;gap:7px}
+.multi-option{position:relative;display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border:1px solid #e1e9e4;border-radius:999px;background:#fafcfb;color:#627169;font-size:10px;cursor:pointer;user-select:none;transition:.15s}
+.multi-option:hover{border-color:#bdd5c4;background:#f5faf6}
+.multi-option.selected{background:#e7f4eb;border-color:#bfdac7;color:#365d42;font-weight:750}
+.multi-option input{position:absolute;opacity:0;pointer-events:none}
+.multi-check{width:15px;height:15px;border-radius:5px;border:1px solid #cddbd1;background:#fff;display:grid;place-items:center;font-size:9px;color:#fff;flex:none}
+.multi-option.selected .multi-check{background:#6f9f7c;border-color:#6f9f7c;color:#fff}
+@media(max-width:760px){.multi-panel,.size-dropdown .multi-panel{position:fixed;left:12px;right:12px;top:auto;bottom:calc(84px + env(safe-area-inset-bottom));width:auto;max-height:52vh;border-radius:20px}.compact-multi-field{grid-column:1/-1!important}}
+/* Arte correta do mascote */
+.logo img,.avatar .bubble img,.agent-baby img,.bot-icon img{object-fit:cover;object-position:center 38%}
+.logo img,.avatar .bubble img{transform:scale(1.06)}
+.agent-baby{width:110px;height:110px;border-radius:26px}
