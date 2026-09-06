@@ -1,4 +1,4 @@
-const CACHE = 'ninho-v12-multiselect-enxoval';
+const CACHE = 'ninho-v13-sem-card-enxoval';
 const ASSETS = ['./', './index.html', './styles.css', './app.js', './manifest.webmanifest'];
 
 self.addEventListener('install', event => {
