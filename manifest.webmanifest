@@ -8,8 +8,8 @@
   "description": "Gestação, vacinas, acompanhamento médico, enxoval até 2 anos, orçamento e chá de fraldas.",
   "icons": [
     {
-      "src": "mascote-ninho.webp",
-      "sizes": "512x512",
+      "src": "mascote-ninho-v2.webp",
+      "sizes": "256x256",
       "type": "image/webp",
       "purpose": "any maskable"
     }
