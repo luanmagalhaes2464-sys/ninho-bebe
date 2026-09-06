@@ -60,57 +60,57 @@ function go(id){
 
 const I=(id,name,category,size,recommended,when,essential,note,phase,status='Planejado')=>({id,name,category,size,recommended,have:0,status,when,essential,note,phase,price:0});
 const defaultItems=[
- // ROUPAS — alvo de rotina por fase, considerando trocas e lavagem a cada 2–3 dias
- I('rn1','Body manga curta','Roupas','RN',5,'2º trimestre',true,'Parte do conjunto inicial; RN dura pouco, então o alvo é suficiente sem exagerar.','Nascimento'),
- I('rn2','Body manga longa','Roupas','RN',5,'2º trimestre',true,'Ajuda nas camadas e em noites mais frescas.','Nascimento'),
- I('rn3','Macacão com pezinho','Roupas','RN',6,'2º trimestre',true,'Quantidade de rotina para dia/noite e trocas.','Nascimento'),
- I('rn4','Calça / culote','Roupas','RN',5,'2º trimestre',true,'Para combinar com bodies.','Nascimento'),
- I('rn5','Casaquinho leve','Roupas','RN',2,'2º trimestre',false,'Duas unidades permitem rodízio sem formar estoque grande.','Nascimento'),
- I('rn6','Meias','Roupas','RN',4,'2º trimestre',false,'Quatro pares são suficientes para o início.','Nascimento'),
+ // ROUPAS — alvos conservadores revisados; RN enxuto, fases seguintes por rotação e estação, sem inflar automaticamente pelo clima
+ I('rn1','Body manga curta','Roupas','RN',2,'2º trimestre',true,'RN costuma durar pouco; quantidade enxuta para evitar sobra. Completar depois apenas se o bebê usar RN por mais tempo.','Nascimento'),
+ I('rn2','Body manga longa','Roupas','RN',3,'2º trimestre',true,'Abril/maio em Viçosa tende a pedir mais camadas; por isso há um pouco mais de manga longa do que curta.','Nascimento'),
+ I('rn3','Macacão com pezinho','Roupas','RN',4,'2º trimestre',true,'Quatro dão uma rotação inicial sem formar estoque grande de RN.','Nascimento'),
+ I('rn4','Calça / culote','Roupas','RN',3,'2º trimestre',true,'Três são suficientes para combinar com os bodies no começo; comprar mais só se o uso real pedir.','Nascimento'),
+ I('rn5','Casaquinho leve','Roupas','RN',1,'2º trimestre',false,'Duas unidades permitem rodízio sem formar estoque grande.','Nascimento'),
+ I('rn6','Meias','Roupas','RN',3,'2º trimestre',false,'Quatro pares são suficientes para o início.','Nascimento'),
  I('rn7','Touca de algodão','Roupas','RN',1,'3º trimestre',false,'Mais útil em saída da maternidade ou frio; não precisa estocar.','Nascimento'),
 
- I('p1r','Body manga curta','Roupas','P / 0–3m',7,'2º trimestre',true,'Faixa de uso intenso; alvo pensado para trocas e lavanderia.','0–3m'),
- I('p2r','Body manga longa','Roupas','P / 0–3m',7,'2º trimestre',true,'Ajustar o uso à temperatura.','0–3m'),
- I('p3r','Macacão / pijama','Roupas','P / 0–3m',7,'2º trimestre',true,'Quantidade de rotina para sono e dia a dia.','0–3m'),
- I('p4r','Calça / culote','Roupas','P / 0–3m',6,'2º trimestre',true,'Combina com bodies.','0–3m'),
+ I('p1r','Body manga curta','Roupas','P / 0–3m',4,'2º trimestre',true,'Faixa usada por mais tempo que RN; quantidade pensada para trocas sem excesso.','0–3m'),
+ I('p2r','Body manga longa','Roupas','P / 0–3m',5,'2º trimestre',true,'Ajustar o uso à temperatura.','0–3m'),
+ I('p3r','Macacão / pijama','Roupas','P / 0–3m',5,'2º trimestre',true,'Cinco dão boa rotação em 0–3 meses, especialmente no período mais frio.','0–3m'),
+ I('p4r','Calça / culote','Roupas','P / 0–3m',4,'2º trimestre',true,'Combina com bodies.','0–3m'),
  I('p5r','Casaquinho leve','Roupas','P / 0–3m',2,'3º trimestre',false,'Comprar conforme o clima da época.','0–3m'),
- I('p6r','Meias','Roupas','P / 0–3m',5,'3º trimestre',false,'Cinco pares dão boa rotação.','0–3m'),
+ I('p6r','Meias','Roupas','P / 0–3m',4,'3º trimestre',false,'Cinco pares dão boa rotação.','0–3m'),
 
- I('m1r','Body manga curta','Roupas','M / 3–6m',7,'3º trimestre',true,'Comprar mais perto do uso para acertar tamanho e estação.','3–6m','Esperar'),
- I('m2r','Body manga longa','Roupas','M / 3–6m',6,'3º trimestre',true,'Ajustar à estação.','3–6m','Esperar'),
- I('m3r','Macacão / pijama','Roupas','M / 3–6m',6,'Após nascer',true,'Boa rotação para noites e cochilos.','3–6m','Esperar'),
- I('m4r','Calça / conjunto leve','Roupas','M / 3–6m',6,'Após nascer',true,'Comprar conforme crescimento real.','3–6m','Esperar'),
- I('m5r','Conjunto para passeio','Roupas','M / 3–6m',4,'Após nascer',false,'Poucos conjuntos bastam.','3–6m','Esperar'),
+ I('m1r','Body manga curta','Roupas','M / 3–6m',4,'3º trimestre',true,'Comprar mais perto do uso para acertar tamanho e estação.','3–6m','Esperar'),
+ I('m2r','Body manga longa','Roupas','M / 3–6m',4,'3º trimestre',true,'Ajustar à estação.','3–6m','Esperar'),
+ I('m3r','Macacão / pijama','Roupas','M / 3–6m',4,'Após nascer',true,'Quatro dão rotação suficiente; comprar mais perto do uso se a rotina exigir.','3–6m','Esperar'),
+ I('m4r','Calça / conjunto leve','Roupas','M / 3–6m',4,'Após nascer',true,'Comprar conforme crescimento real.','3–6m','Esperar'),
+ I('m5r','Conjunto para passeio','Roupas','M / 3–6m',2,'Após nascer',false,'Poucos conjuntos bastam.','3–6m','Esperar'),
  I('m6r','Casaquinho','Roupas','M / 3–6m',2,'Após nascer',false,'Ajustar ao clima.','3–6m','Esperar'),
- I('m7r','Meias','Roupas','M / 3–6m',5,'Após nascer',false,'Comprar perto da fase.','3–6m','Esperar'),
+ I('m7r','Meias','Roupas','M / 3–6m',4,'Após nascer',false,'Comprar perto da fase.','3–6m','Esperar'),
 
- I('g1r','Body / camiseta manga curta','Roupas','G / 6–9m',7,'5–6 meses',true,'Comprar quando o M estiver ficando pequeno.','6–9m','Esperar'),
- I('g2r','Body / camiseta manga longa','Roupas','G / 6–9m',5,'5–6 meses',false,'Ajustar à estação.','6–9m','Esperar'),
- I('g3r','Pijama / macacão','Roupas','G / 6–9m',6,'5–6 meses',true,'Boa rotação semanal.','6–9m','Esperar'),
- I('g4r','Calça / short','Roupas','G / 6–9m',6,'5–6 meses',true,'Ajustar ao clima.','6–9m','Esperar'),
- I('g5r','Casaquinho','Roupas','G / 6–9m',2,'5–6 meses',false,'Só comprar conforme estação.','6–9m','Esperar'),
- I('g6r','Meias','Roupas','G / 6–9m',5,'5–6 meses',false,'Comprar conforme uso.','6–9m','Esperar'),
+ I('g1r','Body / camiseta manga curta','Roupas','G / 6–9m',5,'5–6 meses',true,'Comprar quando o M estiver ficando pequeno.','6–9m','Esperar'),
+ I('g2r','Body / camiseta manga longa','Roupas','G / 6–9m',2,'5–6 meses',false,'Ajustar à estação.','6–9m','Esperar'),
+ I('g3r','Pijama / macacão','Roupas','G / 6–9m',4,'5–6 meses',true,'Boa rotação semanal.','6–9m','Esperar'),
+ I('g4r','Calça / short','Roupas','G / 6–9m',4,'5–6 meses',true,'Ajustar ao clima.','6–9m','Esperar'),
+ I('g5r','Casaquinho','Roupas','G / 6–9m',1,'5–6 meses',false,'Só comprar conforme estação.','6–9m','Esperar'),
+ I('g6r','Meias','Roupas','G / 6–9m',3,'5–6 meses',false,'Comprar conforme uso.','6–9m','Esperar'),
 
- I('gg1','Body / camiseta manga curta','Roupas','GG / 9–12m',8,'8–9 meses',true,'Maior mobilidade costuma aumentar trocas.','9–12m','Esperar'),
- I('gg2','Camiseta manga longa','Roupas','GG / 9–12m',4,'8–9 meses',false,'Ajustar à estação.','9–12m','Esperar'),
- I('gg3','Pijama','Roupas','GG / 9–12m',6,'8–9 meses',true,'Rotação confortável para a semana.','9–12m','Esperar'),
- I('gg4','Calça / short','Roupas','GG / 9–12m',7,'8–9 meses',true,'Comprar por estação.','9–12m','Esperar'),
- I('gg5','Casaquinho','Roupas','GG / 9–12m',2,'8–9 meses',false,'Só perto do uso.','9–12m','Esperar'),
- I('gg6','Meias','Roupas','GG / 9–12m',5,'8–9 meses',false,'Comprar conforme necessidade.','9–12m','Esperar'),
+ I('gg1','Body / camiseta manga curta','Roupas','GG / 9–12m',5,'8–9 meses',true,'Maior mobilidade costuma aumentar trocas.','9–12m','Esperar'),
+ I('gg2','Camiseta manga longa','Roupas','GG / 9–12m',2,'8–9 meses',false,'Ajustar à estação.','9–12m','Esperar'),
+ I('gg3','Pijama','Roupas','GG / 9–12m',4,'8–9 meses',true,'Quatro pijamas costumam ser uma base prática; ajustar conforme frequência de lavagem.','9–12m','Esperar'),
+ I('gg4','Calça / short','Roupas','GG / 9–12m',4,'8–9 meses',true,'Comprar por estação.','9–12m','Esperar'),
+ I('gg5','Casaquinho','Roupas','GG / 9–12m',1,'8–9 meses',false,'Só perto do uso.','9–12m','Esperar'),
+ I('gg6','Meias','Roupas','GG / 9–12m',3,'8–9 meses',false,'Comprar conforme necessidade.','9–12m','Esperar'),
 
- I('12a1','Camisetas / bodies','Roupas','12–18m',8,'11–12 meses',true,'Nessa fase algumas marcas deixam de usar body; ajustar ao que funcionar melhor.','12–18m','Esperar'),
- I('12a2','Calças / shorts','Roupas','12–18m',7,'11–12 meses',true,'Rotação semanal.','12–18m','Esperar'),
- I('12a3','Pijamas','Roupas','12–18m',6,'11–12 meses',true,'Quantidade de rotina.','12–18m','Esperar'),
+ I('12a1','Camisetas / bodies','Roupas','12–18m',6,'11–12 meses',true,'Nessa fase algumas marcas deixam de usar body; ajustar ao que funcionar melhor.','12–18m','Esperar'),
+ I('12a2','Calças / shorts','Roupas','12–18m',5,'11–12 meses',true,'Base prática para rodízio; completar apenas se a rotina real pedir.','12–18m','Esperar'),
+ I('12a3','Pijamas','Roupas','12–18m',5,'11–12 meses',true,'Base prática para rodízio; completar apenas se a rotina real pedir.','12–18m','Esperar'),
  I('12a4','Casaquinhos','Roupas','12–18m',2,'11–12 meses',false,'Ajustar ao clima.','12–18m','Esperar'),
- I('12a5','Meias','Roupas','12–18m',6,'11–12 meses',false,'Comprar conforme uso de calçados.','12–18m','Esperar'),
+ I('12a5','Meias','Roupas','12–18m',4,'11–12 meses',false,'Comprar conforme uso de calçados.','12–18m','Esperar'),
  I('12a6','Calçado flexível','Roupas','12–18m',1,'Quando começar a andar fora',false,'Dentro de casa, priorizar liberdade dos pés quando seguro; comprar pelo tamanho real.','12–18m','Esperar'),
 
- I('18a1','Camisetas','Roupas','18–24m',8,'17–18 meses',true,'Rotação semanal.','18–24m','Esperar'),
- I('18a2','Calças / shorts','Roupas','18–24m',7,'17–18 meses',true,'Comprar conforme estação.','18–24m','Esperar'),
- I('18a3','Pijamas','Roupas','18–24m',6,'17–18 meses',true,'Quantidade de rotina.','18–24m','Esperar'),
- I('18a4','Casaquinhos','Roupas','18–24m',2,'17–18 meses',false,'Ajustar ao clima.','18–24m','Esperar'),
- I('18a5','Meias','Roupas','18–24m',6,'17–18 meses',false,'Comprar conforme uso.','18–24m','Esperar'),
- I('18a6','Calçado flexível','Roupas','18–24m',2,'17–18 meses',false,'Comprar somente pelo tamanho real do pé.','18–24m','Esperar'),
+ I('18a1','Camisetas','Roupas','18–24m',6,'17–18 meses',true,'Base prática para rodízio; completar apenas se a rotina real pedir.','18–24m','Esperar'),
+ I('18a2','Calças / shorts','Roupas','18–24m',5,'17–18 meses',true,'Comprar conforme estação.','18–24m','Esperar'),
+ I('18a3','Pijamas','Roupas','18–24m',5,'17–18 meses',true,'Base prática para rodízio; completar apenas se a rotina real pedir.','18–24m','Esperar'),
+ I('18a4','Casaquinhos','Roupas','18–24m',1,'17–18 meses',false,'Ajustar ao clima.','18–24m','Esperar'),
+ I('18a5','Meias','Roupas','18–24m',4,'17–18 meses',false,'Comprar conforme uso.','18–24m','Esperar'),
+ I('18a6','Calçado flexível','Roupas','18–24m',1,'17–18 meses',false,'Comprar somente pelo tamanho real do pé.','18–24m','Esperar'),
 
  // SONO E QUARTO
  I('s1','Berço certificado','Sono','Único',1,'2º trimestre',true,'Verificar certificação, montagem e manual do fabricante.','Nascimento','Pesquisar'),
@@ -449,17 +449,17 @@ function clothingBias(name){const t=String(name||'').toLowerCase();if(/manga lon
 function seasonPriorityInfo(i){
  const season=phaseSeasonInfo(i.phase);
  if(i.category!=='Roupas')return{...season,priority:'',adjustment:0,advice:''};
- const bias=clothingBias(i.name);let priority='equilibrado',adjustment=0,advice='Mesclar peças leves e camadas.';
+ const bias=clothingBias(i.name);let priority='equilibrado',advice='Mesclar peças leves e camadas conforme a temperatura real.';
  if(season.primary==='frio'){
-  if(bias==='frio'){priority='prioridade alta';adjustment=/macac|pijama/.test(String(i.name).toLowerCase())?2:1;advice='Essa fase pega os meses mais frescos; vale reforçar esta peça.'}
-  else if(bias==='quente'){priority='prioridade média';adjustment=(i.phase==='Nascimento'||i.phase==='0–3m')?0:-1;advice='Ainda é útil para usar por baixo das camadas e em dias amenos.'}
+  if(bias==='frio'){priority='prioridade alta';advice='Essa fase pega meses mais frescos; o clima já foi considerado no alvo, sem acrescentar peças automaticamente.'}
+  else if(bias==='quente'){priority='prioridade média';advice='Ainda é útil para usar por baixo das camadas e nos dias amenos.'}
  }else if(season.primary==='quente'){
-  if(bias==='quente'){priority='prioridade alta';adjustment=1;advice='Essa fase tende a pegar calor; peças leves ganham prioridade.'}
-  else if(bias==='frio'){priority='comprar aos poucos';adjustment=-1;advice='Evite estoque grande e confirme a necessidade perto do uso.'}
+  if(bias==='quente'){priority='prioridade alta';advice='Essa fase tende a pegar calor; priorize peças leves, mas sem aumentar o estoque automaticamente.'}
+  else if(bias==='frio'){priority='comprar aos poucos';advice='Evite estoque grande e confirme a necessidade perto do uso.'}
  }
- return{...season,priority,adjustment,advice}
+ return{...season,priority,adjustment:0,advice}
 }
-function targetFor(i){const base=baseTargetFor(i);const s=seasonPriorityInfo(i);return Math.max(0,base+Number(s.adjustment||0))}
+function targetFor(i){return Math.max(0,baseTargetFor(i))}
 function renderSeasonPlanner(){return `<div class="season-plan">${['Nascimento','0–3m','3–6m','6–9m','9–12m','12–18m','18–24m'].map(p=>{const s=phaseSeasonInfo(p);return `<div class="season-card ${s.primary}"><b>${p}</b><span>${s.windowText}</span><small>${s.label}</small></div>`}).join('')}</div>`}
 function authHeaders(){if(!syncPin)return {};return canEdit()?{'x-ninho-pin':syncPin}:{'x-ninho-viewer-pin':syncPin}}
 async function apiState(method='GET',body){
