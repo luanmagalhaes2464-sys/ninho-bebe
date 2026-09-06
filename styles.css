@@ -33,3 +33,12 @@
 .season-pill.quente{background:#fff0e5;color:#8b5f2e}
 @media(max-width:1180px){.season-plan{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:760px){.baby-human-stage{height:278px}.humanized-baby-card .baby-today-copy h3{font-size:26px}.humanized-baby-card .baby-today-copy p,.humanized-baby-card .baby-evolution{font-size:14px}.season-plan{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* --- Sessão persistente + saída explícita --- */
+.sidebar-account{position:absolute;left:18px;right:18px;bottom:18px;display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:9px;padding:11px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.92);box-shadow:0 8px 24px rgba(35,66,49,.05)}
+.sidebar-account-icon{width:34px;height:34px;border-radius:12px;background:var(--green-2);display:grid;place-items:center;color:var(--green-4);font-size:18px;font-weight:800}
+.sidebar-account-copy{min-width:0}.sidebar-account-copy b{display:block;font-size:11px}.sidebar-account-copy span{display:block;font-size:9px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.logout-btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 9px;font-size:9.5px;font-weight:800;color:#7a625a}.logout-btn:hover{background:#fff5f1;border-color:#ead7d0}
+.mobile-logout{display:none}
+@media(max-width:1180px){.sidebar-account-copy{display:none}.sidebar-account{grid-template-columns:1fr;padding:8px}.sidebar-account-icon{display:none}.logout-btn{width:100%;padding:8px 4px}.nav{max-height:calc(100vh - 115px)}}
+@media(max-width:760px){.mobile-logout{display:inline-flex;position:fixed;left:12px;bottom:calc(72px + env(safe-area-inset-bottom));z-index:29;border:1px solid var(--line);background:rgba(255,255,255,.94);backdrop-filter:blur(10px);border-radius:999px;padding:7px 10px;font-size:9px;font-weight:800;color:#6e625d;box-shadow:0 7px 18px rgba(35,66,49,.08)}}
