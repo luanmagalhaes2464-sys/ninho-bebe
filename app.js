@@ -357,12 +357,15 @@ function normalizeState(raw){
 }
 const priorState=JSON.parse(localStorage.getItem(STORE_KEY)||'null')||JSON.parse(localStorage.getItem('ninho-bebe-v3')||'null')||JSON.parse(localStorage.getItem('ninho-bebe-v2')||'null')||JSON.parse(localStorage.getItem('ninho-bebe-v1')||'null');
 let state=normalizeState(priorState);
-let cloudEnabled=false, syncTimer=null, syncPin=sessionStorage.getItem('ninho-pin')||'', syncBusy=false, authRole=sessionStorage.getItem('ninho-role')||'editor';
+let cloudEnabled=false, syncTimer=null, syncPin='', syncBusy=false, authRole='anonymous';
 function canEdit(){return authRole==='editor'}
 function guardEdit(){if(canEdit())return true;toast('Modo visitante: somente visualização');return false}
-window.switchAccess=()=>{sessionStorage.removeItem('ninho-pin');sessionStorage.removeItem('ninho-role');location.reload()};
+function setLoginError(msg=''){const el=$('#loginError');if(!el)return;el.textContent=msg;el.classList.toggle('show',Boolean(msg))}
+function unlockApp(){document.body.classList.remove('auth-locked');$('#authGate')?.classList.add('hidden');applyAccessModeUI()}
+function lockApp(){document.body.classList.add('auth-locked');$('#authGate')?.classList.remove('hidden')}
+window.switchAccess=()=>{syncPin='';authRole='anonymous';sessionStorage.removeItem('ninho-pin');sessionStorage.removeItem('ninho-role');lockApp();setLoginError('');const p=$('#loginPin');if(p){p.value='';setTimeout(()=>p.focus(),80)}};
 function applyAccessModeUI(){
-  document.body.classList.toggle('readonly',!canEdit());
+  document.body.classList.toggle('readonly',authRole==='viewer');
   const badge=$('#accessBadge');
   if(badge){
     badge.textContent=canEdit()?'Família · edição':'Visitante · visualização';
@@ -370,7 +373,7 @@ function applyAccessModeUI(){
     badge.title='Clique para trocar de usuário';
     badge.onclick=switchAccess;
   }
-  if(!canEdit()){
+  if(authRole==='viewer'){
     const mutating=['addItemModal','q(','statusChange','setFeedingMode','addWatchModal','setBudget','setPrice','setGuests','toggleVax','editVax','generatePrenatal','generateBabyVisits','medicalModal','deleteMedical'];
     document.querySelectorAll('button[onclick],input[onchange],select[onchange],textarea[onchange]').forEach(el=>{
       const code=(el.getAttribute('onclick')||'')+(el.getAttribute('onchange')||'');
@@ -378,61 +381,50 @@ function applyAccessModeUI(){
     });
   }
 }
-async function promptForAccess(message='Entre no Ninho.'){
-  const user=(window.prompt(message+'\n\nUsuários disponíveis: familia ou visitante','familia')||'').trim().toLowerCase();
-  if(!user)return false;
+window.loginNinho=async event=>{
+  event?.preventDefault?.();
+  const user=($('#loginUser')?.value||'').trim().toLowerCase();
+  const pin=$('#loginPin')?.value||'';
+  const btn=$('#loginButton');
+  if(!pin){setLoginError('Digite o PIN para entrar.');return}
   authRole=user==='visitante'?'viewer':'editor';
-  const label=authRole==='viewer'?'visitante':'da família';
-  const entered=window.prompt(`Digite o PIN ${label}:`)||'';
-  if(!entered)return false;
-  syncPin=entered;
-  sessionStorage.setItem('ninho-pin',entered);
-  sessionStorage.setItem('ninho-role',authRole);
-  applyAccessModeUI();
-  return true;
-}
+  syncPin=pin;
+  setLoginError('');
+  if(btn){btn.disabled=true;btn.textContent='Entrando...'}
+  try{
+    const cfg=await fetch('/api/config',{cache:'no-store'}).then(r=>r.ok?r.json():null);
+    if(!cfg?.database){setLoginError('O banco do Ninho não está disponível no momento.');return}
+    cloudEnabled=true;
+    const res=await fetch('/api/state',{headers:{...authHeaders()},cache:'no-store'});
+    if(!res.ok){
+      authRole='anonymous';syncPin='';
+      setLoginError(user==='visitante'?'Usuário/PIN de visitante inválido. Confira NINHO_VISITOR_PIN no Render.':'Usuário/PIN da família inválido.');
+      return;
+    }
+    const data=await res.json();
+    authRole=data.role||authRole;
+    if(data.state){
+      state=normalizeState(data.state);
+      localStorage.setItem(STORE_KEY,JSON.stringify(state));
+    }
+    sessionStorage.setItem('ninho-pin',syncPin);
+    sessionStorage.setItem('ninho-role',authRole);
+    renderAll();
+    unlockApp();
+    toast(canEdit()?'Bem-vindos ao Ninho':'Ninho aberto em modo visitante');
+  }catch(e){
+    authRole='anonymous';syncPin='';
+    setLoginError('Não foi possível entrar. Verifique a conexão e tente novamente.');
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='Entrar no Ninho'}
+  }
+};
 function targetFor(i){return FEEDING_TARGETS[i.id]?.[state.feedingMode] ?? Number(i.recommended||0)}
 function authHeaders(){if(!syncPin)return {};return canEdit()?{'x-ninho-pin':syncPin}:{'x-ninho-viewer-pin':syncPin}}
-async function ensurePin(){
- try{
-  const cfg=await fetch('/api/config',{cache:'no-store'}).then(r=>r.ok?r.json():null);
-  if(!cfg){applyAccessModeUI();return null}
-  if(!cfg.database){applyAccessModeUI();return cfg}
-  cloudEnabled=true;
-  if((cfg.ownerPinRequired||cfg.visitorPinEnabled)&&!syncPin){
-    const ok=await promptForAccess('Escolha como deseja entrar no Ninho.');
-    if(!ok)return cfg;
-  }
-  applyAccessModeUI();
-  return cfg;
- }catch{applyAccessModeUI();return null}
-}
 async function apiState(method='GET',body){
  const opts={method,headers:{...authHeaders()}};
  if(body!==undefined){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify(body)}
- let res=await fetch('/api/state',opts);
- if(res.status===401){
-   syncPin='';sessionStorage.removeItem('ninho-pin');
-   const ok=await promptForAccess('PIN inválido ou modo de acesso incorreto.');
-   if(!ok)return null;
-   opts.headers={...(body!==undefined?{'Content-Type':'application/json'}:{}),...authHeaders()};
-   if(body!==undefined)opts.body=JSON.stringify(body);
-   res=await fetch('/api/state',opts);
- }
- return res;
-}
-async function hydrateFromServer(){
- const cfg=await ensurePin();
- if(!cfg?.database) return;
- try{
-  const res=await apiState('GET'); if(!res?.ok)return;
-  const data=await res.json();
-  if(data.role){authRole=data.role;sessionStorage.setItem('ninho-role',authRole)}
-  if(data.state){state=normalizeState(data.state);localStorage.setItem(STORE_KEY,JSON.stringify(state));renderAll();}
-  else if(canEdit())queueCloudSave(50);
-  applyAccessModeUI();
-  toast(canEdit()?'Ninho sincronizado com a nuvem':'Ninho carregado em modo visitante');
- }catch(e){console.warn('sync load',e)}
+ return fetch('/api/state',opts);
 }
 function queueCloudSave(delay=500){
  if(!cloudEnabled||!canEdit())return;
@@ -558,5 +550,5 @@ function agentAnswer(q){const t=q.toLowerCase(),st=stats();
 function renderAll(){renderDashboard();renderEnxoval();renderPromos();renderBudget();renderTea();renderPreg();renderMotherVax();renderBabyVax();renderMedical();renderAgent();applyAccessModeUI();}
 function openModal(html){$('#modal').innerHTML=html;$('#modalBack').classList.add('open')}window.closeModal=()=>$('#modalBack').classList.remove('open');$('#modalBack').onclick=e=>{if(e.target.id==='modalBack')closeModal()};
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-renderNav();renderAll();hydrateFromServer();
+renderNav();lockApp();setTimeout(()=>$('#loginPin')?.focus(),120);
 if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
