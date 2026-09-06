@@ -12,8 +12,6 @@ const app = express();
 app.disable("x-powered-by");
 app.use(express.json({ limit: "12mb" }));
 
-// Entrega explícita dos arquivos do front-end. Isso evita que o fallback do SPA
-// responda index.html para CSS/JS em alguns ambientes de deploy.
 app.get("/styles.css", (_req, res) => {
   res.type("text/css");
   res.set("Cache-Control", "no-store");
@@ -34,7 +32,6 @@ app.get("/sw.js", (_req, res) => {
   res.set("Cache-Control", "no-store");
   res.sendFile(path.join(__dirname, "sw.js"));
 });
-
 app.use(express.static(__dirname, { etag: true, maxAge: 0, fallthrough: true }));
 
 function safeEqual(a = "", b = "") {
@@ -44,11 +41,29 @@ function safeEqual(a = "", b = "") {
   return crypto.timingSafeEqual(aa, bb);
 }
 
-function requirePin(req, res, next) {
-  const expected = process.env.NINHO_PIN;
-  if (!expected) return next();
-  const received = req.get("x-ninho-pin") || "";
-  if (!safeEqual(received, expected)) return res.status(401).json({ error: "PIN inválido" });
+function getRole(req) {
+  const editorExpected = process.env.NINHO_PIN || "";
+  const visitorExpected = process.env.NINHO_VISITOR_PIN || "";
+  const editorReceived = req.get("x-ninho-pin") || "";
+  const visitorReceived = req.get("x-ninho-viewer-pin") || "";
+
+  if (!editorExpected && !visitorExpected) return "editor";
+  if (editorExpected && editorReceived && safeEqual(editorReceived, editorExpected)) return "editor";
+  if (visitorExpected && visitorReceived && safeEqual(visitorReceived, visitorExpected)) return "viewer";
+  return "anonymous";
+}
+
+function requireReadAccess(req, res, next) {
+  const role = getRole(req);
+  if (role === "anonymous") return res.status(401).json({ error: "Acesso negado" });
+  req.ninhoRole = role;
+  next();
+}
+
+function requireEditorAccess(req, res, next) {
+  const role = getRole(req);
+  if (role !== "editor") return res.status(401).json({ error: "Acesso somente para edição" });
+  req.ninhoRole = role;
   next();
 }
 
@@ -63,49 +78,62 @@ app.get("/api/health", async (_req, res) => {
 });
 
 app.get("/api/config", (_req, res) => {
-  res.json({ database: databaseEnabled(), ai: Boolean(process.env.OPENAI_API_KEY), pinRequired: Boolean(process.env.NINHO_PIN) });
+  res.json({
+    database: databaseEnabled(),
+    ai: Boolean(process.env.OPENAI_API_KEY),
+    ownerPinRequired: Boolean(process.env.NINHO_PIN),
+    visitorPinEnabled: Boolean(process.env.NINHO_VISITOR_PIN)
+  });
 });
 
-app.get("/api/state", requirePin, async (_req, res) => {
+app.get("/api/state", requireReadAccess, async (req, res) => {
   try {
-    if (!databaseEnabled()) return res.json({ state: null, database: false });
+    if (!databaseEnabled()) return res.json({ state: null, database: false, role: req.ninhoRole });
     const stored = await getState();
-    res.json({ state: stored?.data ?? null, updatedAt: stored?.updatedAt ?? null, database: true });
+    res.json({ state: stored?.data ?? null, updatedAt: stored?.updatedAt ?? null, database: true, role: req.ninhoRole });
   } catch (err) {
     console.error("get state", err);
     res.status(500).json({ error: "Não foi possível carregar os dados" });
   }
 });
 
-app.put("/api/state", requirePin, async (req, res) => {
+app.put("/api/state", requireEditorAccess, async (req, res) => {
   try {
     if (!databaseEnabled()) return res.status(503).json({ error: "DATABASE_URL não configurada" });
-    if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) return res.status(400).json({ error: "Estado inválido" });
+    if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
+      return res.status(400).json({ error: "Estado inválido" });
+    }
     const updatedAt = await putState(req.body);
-    res.json({ ok: true, updatedAt });
+    res.json({ ok: true, updatedAt, role: req.ninhoRole });
   } catch (err) {
     console.error("put state", err);
     res.status(500).json({ error: "Não foi possível salvar os dados" });
   }
 });
 
-app.post("/api/medical-explain", requirePin, async (req, res) => {
+app.post("/api/medical-explain", requireReadAccess, async (req, res) => {
   try {
-    if (!process.env.OPENAI_API_KEY) return res.status(503).json({ error: "OPENAI_API_KEY não configurada" });
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(503).json({ error: "OPENAI_API_KEY não configurada" });
+    }
     const { notes = "", attachment = null, subject = "", type = "", date = "" } = req.body || {};
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const content = [{
       type: "input_text",
       text: `Você é o Agente Ninho. Explique este registro médico em português brasileiro simples. Contexto: gestação por FIV; o sistema acompanha Isabela e o bebê Ian ou Luísa. Registro de: ${subject || "não informado"}. Tipo: ${type || "não informado"}. Data: ${date || "não informada"}. Texto escrito: ${notes || "sem texto"}.\n\nRegras: descreva somente o que o documento/imagem mostra ou diz. Traduza termos médicos sem inventar. Não dê diagnóstico e não diga que um achado é normal ou anormal sem base explícita no laudo. Diferencie o texto do documento da sua explicação. Se a imagem estiver ilegível, diga isso. Se houver algo potencialmente urgente claramente descrito, oriente contato com a equipe assistente, sem alarmismo. Seja breve e organizado.`
     }];
-    if (attachment?.data && attachment?.type?.startsWith("image/")) content.push({ type: "input_image", image_url: attachment.data, detail: "high" });
-    else if (attachment?.data && attachment?.type === "application/pdf") content.push({ type: "input_file", file_data: String(attachment.data).split(",").pop(), filename: attachment.name || "documento.pdf" });
+
+    if (attachment?.data && attachment?.type?.startsWith("image/")) {
+      content.push({ type: "input_image", image_url: attachment.data, detail: "high" });
+    } else if (attachment?.data && attachment?.type === "application/pdf") {
+      content.push({ type: "input_file", file_data: String(attachment.data).split(",").pop(), filename: attachment.name || "documento.pdf" });
+    }
 
     const response = await client.responses.create({
       model: process.env.OPENAI_MODEL || "gpt-5",
       input: [{ role: "user", content }]
     });
-    res.json({ explanation: response.output_text || "Não foi possível produzir uma explicação." });
+    res.json({ explanation: response.output_text || "Não foi possível produzir uma explicação.", role: req.ninhoRole });
   } catch (err) {
     console.error("medical explain", err);
     res.status(500).json({ error: "Não foi possível analisar o registro" });
