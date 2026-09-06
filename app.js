@@ -483,26 +483,7 @@ function babyStageInfo(){
   const wk=clamp(weeks,4,40);
   return BABY_WEEK_GUIDE[wk]||BABY_WEEK_GUIDE[8];
 }
-function renderBabyTodayCard(){
-  const info=babyStageInfo();
-  return `<div class="baby-today">
-    <div class="baby-loop" aria-label="Ilustração animada do desenvolvimento do bebê">
-      <div class="loop-orbit one"></div><div class="loop-orbit two"></div>
-      <div class="loop-heart">${icons.heart}</div>
-      <div class="baby-shape"><span class="baby-head"></span><span class="baby-body"></span></div>
-      <div class="baby-ruler"><span>~ ${info.cm} cm</span></div>
-    </div>
-    <div class="baby-today-copy">
-      <span class="baby-kicker">Como Ian ou Luísa está hoje</span>
-      <h3>${weeks} semanas${days?` e ${days} dias`:''}</h3>
-      <p>O tamanho de referência nesta semana é de aproximadamente <b>${info.cm} cm</b> — mais ou menos como <b>${info.compare}</b>.</p>
-      <div class="baby-pills"><span class="baby-pill">~ ${info.cm} cm</span><span class="baby-pill soft">${info.compare}</span></div>
-      <div class="baby-stage-note">${info.detail}</div>
-      <small>Comparação ilustrativa. A medida real do bebê é a do ultrassom. Na 8ª semana, o NHS cita ~16 mm; a Mayo Clinic cita 11–14 mm ao final da semana.</small>
-      <div class="baby-source-links"><a target="_blank" href="https://www.nhs.uk/best-start-in-life/pregnancy/week-by-week-guide-to-pregnancy/1st-trimester/week-8/">NHS</a><a target="_blank" href="https://www.mayoclinic.org/healthy-lifestyle/pregnancy-week-by-week/in-depth/prenatal-care/art-20045302">Mayo Clinic</a></div>
-    </div>
-  </div>`;
-}
+function renderBabyTodayCard(){const info=babyStageInfo();return `<div class="baby-today realistic-baby-today"><div class="baby-video-card" aria-label="Visual ilustrativo do bebê na semana atual"><div class="womb-bg"></div><div class="amniotic-sac"></div><div class="umbilical-cord realistic-cord"></div><div class="embryo realistic"><span class="embryo-head"></span><span class="embryo-body"></span><span class="embryo-arm arm-a"></span><span class="embryo-arm arm-b"></span><span class="embryo-leg leg-a"></span><span class="embryo-leg leg-b"></span><span class="embryo-highlight"></span></div><div class="size-chip">~ ${info.cm} cm</div></div><div class="baby-today-copy"><span class="baby-kicker">Como ${PROFILE.babyNames} está hoje</span><h3>${weeks} semanas${days?` e ${days} dias`:''}</h3><p>Aproximadamente <b>${info.cm} cm</b> — do tamanho de <b>${info.compare}</b>.</p></div></div>`}
 
 function renderDashboard(){const st=stats();$('#view-dashboard').innerHTML=`\n ${!canEdit()?'<div class="notice readonly-note"><b>Modo visitante.</b> Você pode navegar e visualizar os dados, mas não pode cadastrar ou alterar informações.</div>':''}
  <div class="hero">
