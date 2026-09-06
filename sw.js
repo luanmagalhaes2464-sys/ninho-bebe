@@ -1,4 +1,4 @@
-const CACHE = 'ninho-v7-bebe-realista-evolucao';
+const CACHE = 'ninho-v8-wikimedia-gif';
 const ASSETS = ['./', './index.html', './styles.css', './app.js', './manifest.webmanifest'];
 
 self.addEventListener('install', event => {
