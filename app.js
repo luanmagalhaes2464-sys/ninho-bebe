@@ -377,7 +377,7 @@ function renderDashboard(){const st=stats();$('#view-dashboard').innerHTML=`\n $
  </div>`}
 function renderSmartList(){const missing=state.items.filter(i=>i.essential&&targetFor(i)>i.have&&i.status!=='Evitar'&&['Nascimento','0–3m'].includes(i.phase)).slice(0,5);return missing.length?`<div class="timeline">${missing.map(i=>`<div class="timeline-item"><div class="timebadge">${i.size.split('/')[0]}</div><div><b>${i.name}</b><span>Faltam ${targetFor(i)-i.have} · ${i.when}</span></div><span class="tag ${i.status==='Pesquisar'?'warn':'green'}">${i.status}</span></div>`).join('')}</div>`:'<div class="empty">Essenciais iniciais cobertos 🎉</div>'}
 
-let currentCat='Todos',currentPhase='Todos',currentSize='Todos';
+let currentCat='Todos',currentPhase='Todos',currentSize='Todos',currentWhen='Todos';
 function getSizeFilters(){
   const preferred=['Todos','RN','P','0–3m','M','3–6m','G','6–9m','GG','9–12m','12–18m','18–24m','Único'];
   const present=new Set(['Todos']);
@@ -399,7 +399,8 @@ function renderEnxoval(){
  const cats=['Todos',...new Set(state.items.map(i=>i.category))];
  const phases=['Todos',...new Set(state.items.map(i=>i.phase).filter(Boolean))];
  const sizes=getSizeFilters();
- const rows=state.items.filter(i=>(currentCat==='Todos'||i.category===currentCat)&&(currentPhase==='Todos'||i.phase===currentPhase)&&(currentSize==='Todos'||extractSizeTags(i).includes(currentSize)));
+ const whens=['Todos',...new Set(state.items.map(i=>i.when).filter(Boolean))];
+ const rows=state.items.filter(i=>(currentCat==='Todos'||i.category===currentCat)&&(currentPhase==='Todos'||i.phase===currentPhase)&&(currentSize==='Todos'||extractSizeTags(i).includes(currentSize))&&(currentWhen==='Todos'||i.when===currentWhen));
  $('#view-enxoval').innerHTML=`
  <div class="card panel"><div class="section-head"><div><h2>Inventário até 2 anos</h2><p>Quantidades são sugestões práticas e conservadoras — não uma regra oficial.</p></div><button class="btn primary" onclick="addItemModal()">${icons.plus} Adicionar item</button></div>
  <div class="notice inventory-note"><b>Alvo = quantidade de rotina para a fase, não mínimo.</b> Vocês não precisam comprar tudo agora; itens futuros continuam marcados como “Esperar”. Para fraldas, o alvo é por pacotes médios e deve ser ajustado ao peso e à marca.</div>
@@ -407,12 +408,13 @@ function renderEnxoval(){
    <div class="field"><label>Categoria</label><select onchange="setCat(this.value)">${cats.map(c=>`<option value="${c}" ${c===currentCat?'selected':''}>${c}</option>`).join('')}</select></div>
    <div class="field"><label>Fase</label><select onchange="setPhase(this.value)">${phases.map(c=>`<option value="${c}" ${c===currentPhase?'selected':''}>${c}</option>`).join('')}</select></div>
    <div class="field"><label>Tamanho / faixa</label><select onchange="setSizeFilter(this.value)">${sizes.map(c=>`<option value="${c}" ${c===currentSize?'selected':''}>${c}</option>`).join('')}</select></div>
+   <div class="field"><label>Quando</label><select onchange="setWhenFilter(this.value)">${whens.map(c=>`<option value="${c}" ${c===currentWhen?'selected':''}>${c}</option>`).join('')}</select></div>
    <div class="field"><label>Alimentação planejada</label><select onchange="setFeedingMode(this.value)">${['Ainda não definido','Aleitamento materno','Misto','Fórmula'].map(c=>`<option value="${c}" ${c===state.feedingMode?'selected':''}>${c}</option>`).join('')}</select></div>
  </div>
  <div class="table-wrap"><table class="table"><thead><tr><th>Item</th><th>Fase</th><th>Tamanho</th><th>Alvo</th><th>Tem</th><th>Status</th><th>Quando</th><th>Nota</th></tr></thead><tbody>${rows.map(itemRow).join('')}</tbody></table></div></div>`
 }
 function itemRow(i){return `<tr><td><b>${i.name}</b><br><span class="muted-mini">${i.category}${i.essential?' · essencial':''}</span></td><td><span class="tag">${i.phase}</span></td><td>${i.size}</td><td><b>${targetFor(i)}</b></td><td><div class="qty"><button onclick="q('${i.id}',-1)">−</button><b>${i.have}</b><button onclick="q('${i.id}',1)">+</button></div></td><td><select class="status-select" onchange="statusChange('${i.id}',this.value)">${['Planejado','Pesquisar','Comprado','Ganhou','Esperar','Evitar'].map(s=>`<option ${i.status===s?'selected':''}>${s}</option>`).join('')}</select></td><td>${i.when}</td><td class="note-cell">${i.note}</td></tr>`}
-window.setCat=c=>{currentCat=c;renderEnxoval()};window.setPhase=c=>{currentPhase=c;renderEnxoval()};window.setSizeFilter=c=>{currentSize=c;renderEnxoval()};window.setFeedingMode=c=>{state.feedingMode=c;save();};window.q=(id,d)=>{const i=state.items.find(x=>x.id===id);i.have=Math.max(0,(i.have||0)+d);if(i.have>0&&i.status==='Planejado')i.status='Ganhou';save()};window.statusChange=(id,s)=>{state.items.find(x=>x.id===id).status=s;save()};
+window.setCat=c=>{currentCat=c;renderEnxoval()};window.setPhase=c=>{currentPhase=c;renderEnxoval()};window.setSizeFilter=c=>{currentSize=c;renderEnxoval()};window.setWhenFilter=c=>{currentWhen=c;renderEnxoval()};window.setFeedingMode=c=>{state.feedingMode=c;save();};window.q=(id,d)=>{const i=state.items.find(x=>x.id===id);i.have=Math.max(0,(i.have||0)+d);if(i.have>0&&i.status==='Planejado')i.status='Ganhou';save()};window.statusChange=(id,s)=>{state.items.find(x=>x.id===id).status=s;save()};
 window.addItemModal=()=>openModal(`<h3>Novo item</h3><div class="form-grid"><div class="field"><label>Nome</label><input id="niName"></div><div class="field"><label>Categoria</label><input id="niCat" placeholder="Ex.: Roupas"></div><div class="field"><label>Fase</label><input id="niPhase" placeholder="Ex.: 12–18m"></div><div class="field"><label>Tamanho</label><input id="niSize"></div><div class="field"><label>Quantidade-alvo</label><input id="niQty" type="number" min="0" value="1"></div><div class="field"><label>Quando comprar</label><input id="niWhen"></div></div><div class="field" style="margin-top:12px"><label>Observação</label><textarea id="niNote"></textarea></div><div class="modal-foot"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveNewItem()">Adicionar</button></div>`);
 window.saveNewItem=()=>{if(!$('#niName').value.trim())return;state.items.push(I('u'+Date.now(),$('#niName').value.trim(),$('#niCat').value||'Outros',$('#niSize').value||'Único',+$('#niQty').value||0,$('#niWhen').value||'Quando necessário',false,$('#niNote').value||'', $('#niPhase').value||'Nascimento'));closeModal();save()};
 
