@@ -483,7 +483,33 @@ function babyStageInfo(){
   const wk=clamp(weeks,4,40);
   return BABY_WEEK_GUIDE[wk]||BABY_WEEK_GUIDE[8];
 }
-function renderBabyTodayCard(){const info=babyStageInfo();return `<div class="baby-today realistic-baby-today"><div class="baby-video-card real-embryo-scene" aria-label="Visual ilustrativo do bebê na semana atual"><div class="womb-bg realistic-bg"></div><div class="amniotic-sac realistic-sac"></div><div class="umbilical-cord realistic-cord"></div><div class="embryo realistic embryo-centered"><span class="embryo-head"></span><span class="embryo-torso"></span><span class="embryo-hip"></span><span class="embryo-arm arm-a"></span><span class="embryo-arm arm-b"></span><span class="embryo-leg leg-a"></span><span class="embryo-leg leg-b"></span><span class="embryo-highlight"></span><span class="embryo-shadow"></span></div><div class="size-chip">~ ${info.cm} cm</div></div><div class="baby-today-copy"><span class="baby-kicker">Como ${PROFILE.babyNames} está hoje</span><h3>${weeks} semanas${days?` e ${days} dias`:''}</h3><p>Aproximadamente <b>${info.cm} cm</b> — do tamanho de <b>${info.compare}</b>.</p><div class="baby-evolution">${info.detail}</div></div></div>`}
+const BABY_MEDIA={
+  8:{
+    title:'File:8w3d with umbilical cord.gif',
+    source:'Wikimedia Commons · CC0',
+    sourceUrl:'https://commons.wikimedia.org/wiki/File:8w3d_with_umbilical_cord.gif'
+  }
+};
+async function loadBabyMedia(){
+  const media=BABY_MEDIA[weeks];
+  const holder=document.querySelector('[data-baby-media]');
+  if(!holder||!media)return;
+  try{
+    const api='https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&prop=imageinfo&iiprop=url|extmetadata&titles='+encodeURIComponent(media.title);
+    const data=await fetch(api,{cache:'force-cache'}).then(r=>r.ok?r.json():Promise.reject(new Error('commons')));
+    const page=Object.values(data?.query?.pages||{})[0];
+    const info=page?.imageinfo?.[0];
+    if(!info?.url)throw new Error('media');
+    holder.innerHTML=`<img class="baby-real-gif" src="${info.url}" alt="Ultrassom real de embrião com 8 semanas e 3 dias" loading="eager" decoding="async"><span class="baby-media-badge">GIF real · 8s3d</span>`;
+    holder.classList.add('media-loaded');
+    const src=document.querySelector('[data-baby-source]');
+    if(src){src.textContent=media.source;src.href=media.sourceUrl;src.hidden=false}
+  }catch(e){
+    holder.classList.add('media-fallback');
+  }
+}
+
+function renderBabyTodayCard(){const info=babyStageInfo();const hasMedia=Boolean(BABY_MEDIA[weeks]);return `<div class="baby-today real-media-baby-card"><div class="baby-real-stage ${hasMedia?'has-media':''}" data-baby-media><div class="baby-media-loading"><span class="pulse-dot"></span><span>Carregando visual real...</span></div></div><div class="baby-today-copy"><span class="baby-kicker">Como ${PROFILE.babyNames} está hoje</span><h3>${weeks} semanas${days?` e ${days} dias`:''}</h3><p>Aproximadamente <b>${info.cm} cm</b> — do tamanho de <b>${info.compare}</b>.</p><div class="baby-evolution">${info.detail}</div><a class="baby-media-source" data-baby-source target="_blank" rel="noopener" hidden></a></div></div>`}
 
 function renderDashboard(){const st=stats();$('#view-dashboard').innerHTML=`\n ${!canEdit()?'<div class="notice readonly-note"><b>Modo visitante.</b> Você pode navegar e visualizar os dados, mas não pode cadastrar ou alterar informações.</div>':''}
  <div class="hero">
@@ -592,7 +618,7 @@ function agentAnswer(q){const t=q.toLowerCase(),st=stats();
  if(/agros|plano|nascer saudável|nascer saudavel/.test(t))return 'O Agros informa o programa Nascer Saudável, com encontros de pré-natal em Viçosa, visita de enfermeira após o nascimento nas áreas de abrangência e kit de cuidados do bebê para beneficiárias. Vale confirmar o agendamento diretamente com o plano.';
  return 'Posso responder sobre: semanas de gestação, inventário até 2 anos, presentes, orçamento, promoções, vacinas da Isabela, vacinas do bebê, consultas programadas e explicação de textos/laudos registrados.'}
 
-function renderAll(){renderDashboard();renderEnxoval();renderPromos();renderBudget();renderTea();renderPreg();renderMotherVax();renderBabyVax();renderMedical();renderAgent();applyAccessModeUI();}
+function renderAll(){renderDashboard();renderEnxoval();renderPromos();renderBudget();renderTea();renderPreg();renderMotherVax();renderBabyVax();renderMedical();renderAgent();setTimeout(loadBabyMedia,0);applyAccessModeUI();}
 function openModal(html){$('#modal').innerHTML=html;$('#modalBack').classList.add('open')}window.closeModal=()=>$('#modalBack').classList.remove('open');$('#modalBack').onclick=e=>{if(e.target.id==='modalBack')closeModal()};
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 renderNav();lockApp();setTimeout(()=>$('#loginPin')?.focus(),120);
