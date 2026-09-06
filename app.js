@@ -117,6 +117,7 @@ const defaultItems=[
  I('s5','Protetor impermeável de colchão','Sono','Berço',2,'3º trimestre',true,'Dois facilitam troca e lavagem.','Nascimento'),
  I('s4','Saco de dormir apropriado','Sono','0–6m',2,'3º trimestre',false,'Opcional; dois permitem rodízio. Seguir tamanho/peso do fabricante.','Nascimento','Pesquisar'),
  I('s6','Manta / cueiro para colo e passeio','Sono','Único',3,'3º trimestre',true,'Para colo/passeio; não deixar solto no berço durante o sono.','Nascimento'),
+ I('s9','Cobertor de microfibra','Sono','Único',2,'3º trimestre',true,'Útil para colo, carrinho e saídas em dias frios. Como o nascimento é previsto para abril em Viçosa, vale ter dois para rodízio. Não deixar solto no berço durante o sono.','Nascimento'),
  I('s7','Luz noturna suave','Sono','Único',1,'3º trimestre',false,'Facilita trocas noturnas sem iluminar demais o quarto.','Nascimento','Pesquisar'),
  I('s8','Babá eletrônica','Sono','Único',1,'Após organizar o quarto',false,'Opcional; depende da casa e da rotina.','Nascimento','Pesquisar'),
  I('x1','Travesseiro para RN','Sono','Único',0,'Não comprar',false,'Não usar no espaço de sono do recém-nascido.','Nascimento','Evitar'),
@@ -137,6 +138,8 @@ const defaultItems=[
  I('h2','Gaze estéril','Higiene','Pacote',2,'3º trimestre',false,'Útil apenas quando houver orientação específica.','Nascimento'),
  I('h3','Álcool 70%','Higiene','Frasco pequeno',1,'3º trimestre',false,'Para o coto somente conforme orientação da maternidade/equipe de saúde.','Nascimento'),
  I('h4','Sabonete líquido suave','Higiene','Frasco',1,'3º trimestre',true,'Começar com um; não há necessidade de estocar cosméticos.','Nascimento'),
+ I('h18','Shampoo suave para bebê','Higiene','Frasco',1,'3º trimestre',false,'Começar com apenas um frasco e observar a tolerância da pele/couro cabeludo; não precisa estocar.','Nascimento'),
+ I('h19','Condicionador suave infantil','Higiene','Frasco',1,'Após nascer / se necessário',false,'Opcional no início; comprar se fizer sentido para o cabelo e conforme orientação pediátrica.','0–6m','Esperar'),
  I('h5','Lenço umedecido sem perfume/álcool','Higiene','Pacote',3,'Perto do parto',false,'Útil fora de casa; em casa, água e algodão podem ser suficientes.','Nascimento'),
  I('h6','Fralda de boca / pano pequeno','Higiene','Único',12,'2º trimestre',true,'Usa bastante em mamadas, baba e pequenas limpezas.','Nascimento'),
  I('h12','Fralda de ombro / pano grande','Higiene','Único',6,'2º trimestre',true,'Para colo, arroto e proteção da roupa.','Nascimento'),
@@ -146,7 +149,7 @@ const defaultItems=[
  I('h9','Trocador impermeável fixo','Higiene','Único',1,'3º trimestre',true,'Pode ser simples e lavável.','Nascimento'),
  I('h14','Trocador portátil','Higiene','Único',1,'3º trimestre',false,'Útil na bolsa para sair de casa.','Nascimento'),
  I('h10','Cortador/tesoura de unha infantil','Higiene','Único',1,'3º trimestre',true,'Uma unidade é suficiente.','Nascimento'),
- I('h11','Escova macia de cabelo','Higiene','Único',1,'Após nascer',false,'Opcional.','0–6m','Esperar'),
+ I('h11','Escova macia de cabelo','Higiene','Único',1,'3º trimestre',true,'Uma unidade macia é suficiente para o início.','Nascimento'),
  I('h15','Creme barreira para assadura','Higiene','Tubo',2,'3º trimestre',true,'Um em uso e um reserva; ajustar à orientação pediátrica.','Nascimento'),
  I('h16','Cesto de roupas do bebê','Higiene','Único',1,'3º trimestre',false,'Ajuda a separar peças pequenas.','Nascimento'),
  I('h17','Organizadores/cestos para trocas','Higiene','Único',3,'3º trimestre',false,'Facilitam manter fraldas e higiene à mão.','Nascimento'),
@@ -527,7 +530,7 @@ function renderDashboard(){const st=stats();$('#view-dashboard').innerHTML=`\n $
  </div>`}
 function renderSmartList(){const missing=state.items.filter(i=>i.essential&&targetFor(i)>i.have&&i.status!=='Evitar'&&['Nascimento','0–3m'].includes(i.phase)).slice(0,5);return missing.length?`<div class="timeline">${missing.map(i=>`<div class="timeline-item"><div class="timebadge">${i.size.split('/')[0]}</div><div><b>${i.name}</b><span>Faltam ${targetFor(i)-i.have} · ${i.when}</span></div><span class="tag ${i.status==='Pesquisar'?'warn':'green'}">${i.status}</span></div>`).join('')}</div>`:'<div class="empty">Essenciais iniciais cobertos 🎉</div>'}
 
-let currentCat='Todos',currentPhase='Todos',currentSize='Todos',currentWhen='Todos';
+let currentCat='Todos',currentPhase='Todos',currentSize='Todos',currentWhen='Todos',currentCompletion='Todos';
 function getSizeFilters(){
   const preferred=['Todos','RN','P','0–3m','M','3–6m','G','6–9m','GG','9–12m','12–18m','18–24m','Único'];
   const present=new Set(['Todos']);
@@ -550,21 +553,25 @@ function renderEnxoval(){
  const phases=['Todos',...new Set(state.items.map(i=>i.phase).filter(Boolean))];
  const sizes=getSizeFilters();
  const whens=['Todos',...new Set(state.items.map(i=>i.when).filter(Boolean))];
- const rows=state.items.filter(i=>(currentCat==='Todos'||i.category===currentCat)&&(currentPhase==='Todos'||i.phase===currentPhase)&&(currentSize==='Todos'||extractSizeTags(i).includes(currentSize))&&(currentWhen==='Todos'||i.when===currentWhen));
+ const completionOptions=['Todos','Pendentes','Concluídos','Evitar'];
+ const isCompleted=i=>targetFor(i)>0&&Number(i.have||0)>=targetFor(i);
+ const matchesCompletion=i=>currentCompletion==='Todos'||(currentCompletion==='Pendentes'&&!isCompleted(i)&&i.status!=='Evitar'&&targetFor(i)>0)||(currentCompletion==='Concluídos'&&isCompleted(i))||(currentCompletion==='Evitar'&&(i.status==='Evitar'||targetFor(i)===0));
+ const rows=state.items.filter(i=>(currentCat==='Todos'||i.category===currentCat)&&(currentPhase==='Todos'||i.phase===currentPhase)&&(currentSize==='Todos'||extractSizeTags(i).includes(currentSize))&&(currentWhen==='Todos'||i.when===currentWhen)&&matchesCompletion(i));
  $('#view-enxoval').innerHTML=`
  <div class="card panel"><div class="section-head"><div><h2>Inventário até 2 anos</h2><p>Quantidades são sugestões práticas e conservadoras — não uma regra oficial.</p></div><button class="btn primary" onclick="addItemModal()">${icons.plus} Adicionar item</button></div>
- <div class="notice inventory-note"><b>Alvo = quantidade de rotina para a fase, não mínimo.</b> Vocês não precisam comprar tudo agora; itens futuros continuam marcados como “Esperar”. Para fraldas, o alvo é por pacotes médios e deve ser ajustado ao peso e à marca. <b>Roupas agora são ajustadas pela época do ano em Viçosa e pela idade prevista do bebê.</b></div>${renderSeasonPlanner()}
+ <div class="notice inventory-note"><b>Alvo = quantidade de rotina para a fase, não mínimo.</b> Vocês não precisam comprar tudo agora; itens futuros continuam marcados como “Esperar”. Para fraldas, o alvo é por pacotes médios e deve ser ajustado ao peso e à marca. <b>Roupas agora são ajustadas pela época do ano em Viçosa e pela idade prevista do bebê.</b> Use o filtro <b>Itens → Pendentes</b> para esconder o que já atingiu a quantidade-alvo.</div>${renderSeasonPlanner()}
  <div class="filter-grid four">
    <div class="field"><label>Categoria</label><select onchange="setCat(this.value)">${cats.map(c=>`<option value="${c}" ${c===currentCat?'selected':''}>${c}</option>`).join('')}</select></div>
    <div class="field"><label>Fase</label><select onchange="setPhase(this.value)">${phases.map(c=>`<option value="${c}" ${c===currentPhase?'selected':''}>${c}</option>`).join('')}</select></div>
    <div class="field"><label>Tamanho / faixa</label><select onchange="setSizeFilter(this.value)">${sizes.map(c=>`<option value="${c}" ${c===currentSize?'selected':''}>${c}</option>`).join('')}</select></div>
    <div class="field"><label>Quando</label><select onchange="setWhenFilter(this.value)">${whens.map(c=>`<option value="${c}" ${c===currentWhen?'selected':''}>${c}</option>`).join('')}</select></div>
+   <div class="field"><label>Itens</label><select onchange="setCompletionFilter(this.value)">${completionOptions.map(c=>`<option value="${c}" ${c===currentCompletion?'selected':''}>${c}</option>`).join('')}</select></div>
    <div class="field"><label>Alimentação planejada</label><select onchange="setFeedingMode(this.value)">${['Ainda não definido','Aleitamento materno','Misto','Fórmula'].map(c=>`<option value="${c}" ${c===state.feedingMode?'selected':''}>${c}</option>`).join('')}</select></div>
  </div>
  <div class="table-wrap"><table class="table"><thead><tr><th>Item</th><th>Fase</th><th>Tamanho</th><th>Alvo</th><th>Tem</th><th>Status</th><th>Quando</th><th>Nota</th></tr></thead><tbody>${rows.map(itemRow).join('')}</tbody></table></div></div>`
 }
 function itemRow(i){const s=seasonPriorityInfo(i);const seasonLine=i.category==='Roupas'?`<div class="season-mini-block"><span class="season-pill ${s.primary}">${s.priority}</span><small>Uso previsto: ${s.windowText} · ${s.label}.</small><small>${s.advice}</small>${s.adjustment?`<small>Alvo ajustado pelo clima: ${s.adjustment>0?'+':''}${s.adjustment}.</small>`:''}</div>`:'';return `<tr><td><b>${i.name}</b><br><span class="muted-mini">${i.category}${i.essential?' · essencial':''}</span></td><td><span class="tag">${i.phase}</span></td><td>${i.size}</td><td><b>${targetFor(i)}</b></td><td><div class="qty"><button onclick="q('${i.id}',-1)">−</button><b>${i.have}</b><button onclick="q('${i.id}',1)">+</button></div></td><td><select class="status-select" onchange="statusChange('${i.id}',this.value)">${['Planejado','Pesquisar','Comprado','Ganhou','Esperar','Evitar'].map(st=>`<option ${i.status===st?'selected':''}>${st}</option>`).join('')}</select></td><td>${i.when}</td><td class="note-cell">${i.note}${seasonLine}</td></tr>`}
-window.setCat=c=>{currentCat=c;renderEnxoval()};window.setPhase=c=>{currentPhase=c;renderEnxoval()};window.setSizeFilter=c=>{currentSize=c;renderEnxoval()};window.setWhenFilter=c=>{currentWhen=c;renderEnxoval()};window.setFeedingMode=c=>{state.feedingMode=c;save();};window.q=(id,d)=>{const i=state.items.find(x=>x.id===id);i.have=Math.max(0,(i.have||0)+d);if(i.have>0&&i.status==='Planejado')i.status='Ganhou';save()};window.statusChange=(id,s)=>{state.items.find(x=>x.id===id).status=s;save()};
+window.setCat=c=>{currentCat=c;renderEnxoval()};window.setPhase=c=>{currentPhase=c;renderEnxoval()};window.setSizeFilter=c=>{currentSize=c;renderEnxoval()};window.setWhenFilter=c=>{currentWhen=c;renderEnxoval()};window.setCompletionFilter=c=>{currentCompletion=c;renderEnxoval()};window.setFeedingMode=c=>{state.feedingMode=c;save();};window.q=(id,d)=>{const i=state.items.find(x=>x.id===id);i.have=Math.max(0,(i.have||0)+d);if(i.have>0&&i.status==='Planejado')i.status='Ganhou';save()};window.statusChange=(id,s)=>{state.items.find(x=>x.id===id).status=s;save()};
 window.addItemModal=()=>openModal(`<h3>Novo item</h3><div class="form-grid"><div class="field"><label>Nome</label><input id="niName"></div><div class="field"><label>Categoria</label><input id="niCat" placeholder="Ex.: Roupas"></div><div class="field"><label>Fase</label><input id="niPhase" placeholder="Ex.: 12–18m"></div><div class="field"><label>Tamanho</label><input id="niSize"></div><div class="field"><label>Quantidade-alvo</label><input id="niQty" type="number" min="0" value="1"></div><div class="field"><label>Quando comprar</label><input id="niWhen"></div></div><div class="field" style="margin-top:12px"><label>Observação</label><textarea id="niNote"></textarea></div><div class="modal-foot"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveNewItem()">Adicionar</button></div>`);
 window.saveNewItem=()=>{if(!$('#niName').value.trim())return;state.items.push(I('u'+Date.now(),$('#niName').value.trim(),$('#niCat').value||'Outros',$('#niSize').value||'Único',+$('#niQty').value||0,$('#niWhen').value||'Quando necessário',false,$('#niNote').value||'', $('#niPhase').value||'Nascimento'));closeModal();save()};
 
