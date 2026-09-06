@@ -40,7 +40,7 @@ const icons={
  clip:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m21.4 11.6-8.5 8.5a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 1 1-2.8-2.8l8.5-8.5"/></svg>',
  bottle:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 3h6M10 3v3h4V3M8 8h8v12a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2Z"/><path d="M8 12h8"/></svg>'
 };
-$('#logoIcon').innerHTML=icons.baby; $('#avatarBaby').innerHTML=icons.baby; $('#sideBaby').innerHTML=icons.bottle;
+if($('#logoIcon')) $('#logoIcon').innerHTML=icons.baby; if($('#avatarBaby')) $('#avatarBaby').innerHTML=icons.baby; if($('#sideBaby')) $('#sideBaby').innerHTML=icons.bottle;
 
 const NAV=[['dashboard','Início','home'],['enxoval','Enxoval','bag'],['promocoes','Promoções','tag'],['orcamento','Orçamento','wallet'],['cha','Chá','gift'],['gestacao','Gestação','calendar'],['vacmae','Vacinas mãe','syringe'],['vacbebe','Vacinas bebê','shield'],['medico','Médico','doctor'],['agente','Agente','bot']];
 const pageMeta={dashboard:['Nossa jornada','Tudo organizado para comprar só o que realmente faz sentido.'],enxoval:['Enxoval até 2 anos','Inventário completo por fase, com quantidades de rotina e compra no momento certo.'],promocoes:['Radar de preços','Defina o preço-alvo e acompanhe os links que valem a pena.'],orcamento:['Planejamento financeiro','Veja o impacto de cada compra antes de gastar.'],cha:['Chá de fraldas','Distribua tamanhos sem concentrar tudo em RN.'],gestacao:['Gestação','Semana atual, pré-natal e próximos marcos.'],vacmae:['Vacinação da mãe','Calendário da gestante com controle de doses.'],vacbebe:['Vacinação do bebê','Calendário-base do PNI até 24 meses.'],medico:['Acompanhamento médico','Consultas, exames, anexos e recorrências em uma linha do tempo.'],agente:['Agente Ninho','Pergunte sobre inventário, saúde, consultas, vacinas e orçamento.']};
@@ -274,30 +274,66 @@ function normalizeState(raw){
 }
 const priorState=JSON.parse(localStorage.getItem(STORE_KEY)||'null')||JSON.parse(localStorage.getItem('ninho-bebe-v3')||'null')||JSON.parse(localStorage.getItem('ninho-bebe-v2')||'null')||JSON.parse(localStorage.getItem('ninho-bebe-v1')||'null');
 let state=normalizeState(priorState);
-let cloudEnabled=false, syncTimer=null, syncPin=sessionStorage.getItem('ninho-pin')||'', syncBusy=false;
+let cloudEnabled=false, syncTimer=null, syncPin=sessionStorage.getItem('ninho-pin')||'', syncBusy=false, authRole=sessionStorage.getItem('ninho-role')||'editor';
+function canEdit(){return authRole==='editor'}
+function guardEdit(){if(canEdit())return true;toast('Modo visitante: somente visualização');return false}
+window.switchAccess=()=>{sessionStorage.removeItem('ninho-pin');sessionStorage.removeItem('ninho-role');location.reload()};
+function applyAccessModeUI(){
+  document.body.classList.toggle('readonly',!canEdit());
+  const badge=$('#accessBadge');
+  if(badge){
+    badge.textContent=canEdit()?'Família · edição':'Visitante · visualização';
+    badge.className='access-badge '+(canEdit()?'edit':'view');
+    badge.title='Clique para trocar de usuário';
+    badge.onclick=switchAccess;
+  }
+  if(!canEdit()){
+    const mutating=['addItemModal','q(','statusChange','setFeedingMode','addWatchModal','setBudget','setPrice','setGuests','toggleVax','editVax','generatePrenatal','generateBabyVisits','medicalModal','deleteMedical'];
+    $('button[onclick],input[onchange],select[onchange],textarea[onchange]').forEach(el=>{
+      const code=(el.getAttribute('onclick')||'')+(el.getAttribute('onchange')||'');
+      if(mutating.some(x=>code.includes(x))) el.disabled=true;
+    });
+  }
+}
+async function promptForAccess(message='Entre no Ninho.'){
+  const user=(window.prompt(message+'\n\nUsuários disponíveis: familia ou visitante','familia')||'').trim().toLowerCase();
+  if(!user)return false;
+  authRole=user==='visitante'?'viewer':'editor';
+  const label=authRole==='viewer'?'visitante':'da família';
+  const entered=window.prompt(`Digite o PIN ${label}:`)||'';
+  if(!entered)return false;
+  syncPin=entered;
+  sessionStorage.setItem('ninho-pin',entered);
+  sessionStorage.setItem('ninho-role',authRole);
+  applyAccessModeUI();
+  return true;
+}
 function targetFor(i){return FEEDING_TARGETS[i.id]?.[state.feedingMode] ?? Number(i.recommended||0)}
-function authHeaders(){return syncPin?{'x-ninho-pin':syncPin}:{}}
+function authHeaders(){if(!syncPin)return {};return canEdit()?{'x-ninho-pin':syncPin}:{'x-ninho-viewer-pin':syncPin}}
 async function ensurePin(){
  try{
   const cfg=await fetch('/api/config',{cache:'no-store'}).then(r=>r.ok?r.json():null);
-  if(!cfg?.database) return cfg;
+  if(!cfg){applyAccessModeUI();return null}
+  if(!cfg.database){applyAccessModeUI();return cfg}
   cloudEnabled=true;
-  if(cfg.pinRequired&&!syncPin){
-    const entered=window.prompt('Digite o PIN do Ninho para sincronizar com a nuvem:')||'';
-    if(entered){syncPin=entered;sessionStorage.setItem('ninho-pin',entered)}
+  if((cfg.ownerPinRequired||cfg.visitorPinEnabled)&&!syncPin){
+    const ok=await promptForAccess('Escolha como deseja entrar no Ninho.');
+    if(!ok)return cfg;
   }
+  applyAccessModeUI();
   return cfg;
- }catch{return null}
+ }catch{applyAccessModeUI();return null}
 }
 async function apiState(method='GET',body){
  const opts={method,headers:{...authHeaders()}};
  if(body!==undefined){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify(body)}
  let res=await fetch('/api/state',opts);
  if(res.status===401){
-   const entered=window.prompt('PIN incorreto. Digite novamente o PIN do Ninho:')||'';
-   if(!entered) return null;
-   syncPin=entered;sessionStorage.setItem('ninho-pin',entered);
-   opts.headers['x-ninho-pin']=syncPin;
+   syncPin='';sessionStorage.removeItem('ninho-pin');
+   const ok=await promptForAccess('PIN inválido ou modo de acesso incorreto.');
+   if(!ok)return null;
+   opts.headers={...(body!==undefined?{'Content-Type':'application/json'}:{}),...authHeaders()};
+   if(body!==undefined)opts.body=JSON.stringify(body);
    res=await fetch('/api/state',opts);
  }
  return res;
@@ -308,26 +344,28 @@ async function hydrateFromServer(){
  try{
   const res=await apiState('GET'); if(!res?.ok)return;
   const data=await res.json();
+  if(data.role){authRole=data.role;sessionStorage.setItem('ninho-role',authRole)}
   if(data.state){state=normalizeState(data.state);localStorage.setItem(STORE_KEY,JSON.stringify(state));renderAll();}
-  else queueCloudSave(50);
-  toast('Ninho sincronizado com a nuvem');
+  else if(canEdit())queueCloudSave(50);
+  applyAccessModeUI();
+  toast(canEdit()?'Ninho sincronizado com a nuvem':'Ninho carregado em modo visitante');
  }catch(e){console.warn('sync load',e)}
 }
 function queueCloudSave(delay=500){
- if(!cloudEnabled)return;
+ if(!cloudEnabled||!canEdit())return;
  clearTimeout(syncTimer);
  syncTimer=setTimeout(async()=>{
   if(syncBusy)return; syncBusy=true;
   try{const res=await apiState('PUT',state);if(res&&!res.ok)console.warn('Falha ao sincronizar',res.status)}catch(e){console.warn('sync save',e)}finally{syncBusy=false}
  },delay);
 }
-function save(){localStorage.setItem(STORE_KEY,JSON.stringify(state));renderAll();queueCloudSave();}
+function save(){if(!canEdit()){toast('Modo visitante: somente visualização');renderAll();return}localStorage.setItem(STORE_KEY,JSON.stringify(state));renderAll();queueCloudSave();}
 function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
 function stats(){const relevant=state.items.filter(i=>targetFor(i)>0);const total=relevant.reduce((s,i)=>s+targetFor(i),0);const have=relevant.reduce((s,i)=>s+Math.min(i.have,targetFor(i)),0);const spent=state.items.reduce((s,i)=>s+(i.status==='Comprado'?Number(i.price||0)*Number(i.have||0):0),0);const gifts=state.items.reduce((s,i)=>s+(i.status==='Ganhou'?i.have:0),0);return{total,have,pct:total?Math.round(have/total*100):0,spent,gifts};}
 function phaseLabel(){return weeks<14?'1º trimestre':weeks<28?'2º trimestre':'3º trimestre'}
 function metric(ic,val,label){return `<div class="card metric"><div class="metric-top"><div class="metric-icon">${icons[ic]}</div></div><strong>${val}</strong><span>${label}</span></div>`}
 
-function renderDashboard(){const st=stats();$('#view-dashboard').innerHTML=`
+function renderDashboard(){const st=stats();$('#view-dashboard').innerHTML=`\n ${!canEdit()?'<div class="notice readonly-note"><b>Modo visitante.</b> Você pode navegar e visualizar os dados, mas não pode cadastrar ou alterar informações.</div>':''}
  <div class="hero">
   <div class="card preg-card"><div class="baby-decor baby-decor-1">${icons.baby}</div><div class="baby-decor baby-decor-2">${icons.bottle}</div><div class="spark s1">✦</div><div class="spark s2">·</div><div class="preg-content"><div class="week-pill">${icons.heart} ${phaseLabel()}</div><div class="week-number">${weeks}<small> semanas${days?` + ${days}d`:''}</small></div><p><b>${PROFILE.babyNames}</b> está a caminho. ${PROFILE.mother} está com ${weeks} semanas${days?` e ${days} dias`:''}; o enxoval segue neutro, por fases e sem excesso.</p><div class="progress"><span style="width:${gestPct}%"></span></div><div class="progress-label"><span>começo</span><span>${gestPct}% da gestação</span><span>parto · abr/2027</span></div></div></div>
   <div class="card quick"><div><h3>Próximos passos</h3><div class="quick-list"><div class="quick-item"><i class="quick-dot"></i><div><b>Pré-natal em dia</b><span>Registre consultas, exames e anexos na guia Médico.</span></div></div><div class="quick-item"><i class="quick-dot"></i><div><b>Vacinas separadas</b><span>Agora há uma guia da mãe e outra do bebê.</span></div></div><div class="quick-item"><i class="quick-dot"></i><div><b>Enxoval por fase</b><span>O inventário agora acompanha do nascimento aos 24 meses.</span></div></div></div></div><button class="btn soft" onclick="go('medico')">Abrir acompanhamento</button></div>
@@ -430,7 +468,7 @@ function agentAnswer(q){const t=q.toLowerCase(),st=stats();
  if(/agros|plano|nascer saudável|nascer saudavel/.test(t))return 'O Agros informa o programa Nascer Saudável, com encontros de pré-natal em Viçosa, visita de enfermeira após o nascimento nas áreas de abrangência e kit de cuidados do bebê para beneficiárias. Vale confirmar o agendamento diretamente com o plano.';
  return 'Posso responder sobre: semanas de gestação, inventário até 2 anos, presentes, orçamento, promoções, vacinas da Isabela, vacinas do bebê, consultas programadas e explicação de textos/laudos registrados.'}
 
-function renderAll(){renderDashboard();renderEnxoval();renderPromos();renderBudget();renderTea();renderPreg();renderMotherVax();renderBabyVax();renderMedical();renderAgent();}
+function renderAll(){renderDashboard();renderEnxoval();renderPromos();renderBudget();renderTea();renderPreg();renderMotherVax();renderBabyVax();renderMedical();renderAgent();applyAccessModeUI();}
 function openModal(html){$('#modal').innerHTML=html;$('#modalBack').classList.add('open')}window.closeModal=()=>$('#modalBack').classList.remove('open');$('#modalBack').onclick=e=>{if(e.target.id==='modalBack')closeModal()};
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 renderNav();renderAll();hydrateFromServer();
