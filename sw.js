@@ -1,4 +1,4 @@
-const CACHE = 'ninho-v5-login';
+const CACHE = 'ninho-v6-bebe-realista';
 const ASSETS = ['./', './index.html', './styles.css', './app.js', './manifest.webmanifest'];
 
 self.addEventListener('install', event => {
