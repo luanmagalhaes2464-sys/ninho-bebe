@@ -1,4 +1,4 @@
-const CACHE = 'ninho-v19-ian';
+const CACHE = 'ninho-v20-agente-ia';
 const ASSETS = ['./', './index.html', './styles.css', './app.js', './manifest.webmanifest', './mascote-ninho-v2.webp'];
 
 self.addEventListener('install', event => {

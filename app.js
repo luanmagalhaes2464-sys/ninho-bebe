@@ -632,7 +632,38 @@ function explainText(text){if(!text?.trim())return 'Não há texto suficiente ne
 window.explainRecord=async id=>{const r=state.medicalRecords.find(x=>x.id===id);openModal(`<h3>Agente Ninho · explicando registro</h3><div class="agent-explain" id="aiExplain">Analisando o registro...</div><div class="modal-foot"><button class="btn primary" onclick="closeModal()">Fechar</button></div>`);let answer='';try{const res=await fetch('/api/medical-explain',{method:'POST',headers:{'Content-Type':'application/json',...authHeaders()},body:JSON.stringify({notes:r.notes||'',attachment:r.attachment||null,subject:r.subject||'',type:r.type||'',date:r.date||''})});if(res.ok){const data=await res.json();answer=data.explanation||''}}catch(e){}if(!answer){let extra=r.attachment?`\n\nAnexo: ${r.attachment.name}. A leitura visual automática fica disponível quando o Ninho estiver rodando com o servidor de IA. Enquanto isso, o texto escrito no registro já pode ser explicado localmente.`:'';answer=explainText(r.notes)+extra}const el=$('#aiExplain');if(el)el.innerHTML=esc(answer).replaceAll('\n','<br>')};
 
 function renderAgent(){const qs=['Isabela está com quantas semanas?','O que falta para o nascimento?','O que comprar só depois de 6 meses?','Quais vacinas da mãe estão pendentes?','Quais são as primeiras vacinas do bebê?','Quais consultas médicas estão programadas?','Explique o último registro médico','Quanto já gastamos?'];$('#view-agente').innerHTML=`<div class="agent-shell"><div class="card agent-side"><div class="agent-baby"><img src="${MASCOT}" alt="Mascote do Ninho"></div><h3>Perguntas rápidas</h3><div class="suggestions">${qs.map(q=>`<button class="suggest" onclick="ask('${q.replaceAll("'","\\'")}')">${q}</button>`).join('')}</div></div><div class="card chat"><div class="chat-head"><div class="bot-icon"><img src="${MASCOT}" alt="Mascote do Ninho"></div><div><b>Agente Ninho</b><span>Ian · saúde + inventário + orçamento</span></div></div><div class="messages" id="messages"><div class="msg bot">Oi! Agora eu conheço o inventário até 2 anos, as vacinas da Isabela e do bebê, a agenda médica e os registros que vocês salvarem.</div></div><div class="chat-input"><input id="agentInput" placeholder="Pergunte qualquer coisa sobre Ian..." onkeydown="if(event.key==='Enter')sendAgent()"><button onclick="sendAgent()">${icons.send}</button></div></div></div>`}
-window.ask=q=>{$('#agentInput').value=q;sendAgent()};window.sendAgent=()=>{const i=$('#agentInput'),q=i.value.trim();if(!q)return;const m=$('#messages');m.insertAdjacentHTML('beforeend',`<div class="msg user">${esc(q)}</div>`);i.value='';const a=agentAnswer(q);setTimeout(()=>{m.insertAdjacentHTML('beforeend',`<div class="msg bot">${esc(a)}</div>`);m.scrollTop=m.scrollHeight},120);m.scrollTop=m.scrollHeight};
+let agentHistory=[];
+window.ask=q=>{$('#agentInput').value=q;sendAgent()};
+function agentContext(){
+ const st=stats();
+ return {
+  profile:{baby:PROFILE.babyNames,sex:PROFILE.sex,mother:PROFILE.mother,city:PROFILE.city+'/'+PROFILE.state,plan:PROFILE.plan,transfer:PROFILE.transfer,embryoDays:PROFILE.embryoDays,birthEstimate:PROFILE.birthEstimate,weeks,days,daysToDue},
+  feedingMode:state.feedingMode,
+  budget:{limit:Number(state.budget||0),spent:st.spent,gifts:st.gifts},
+  inventory:state.items.map(i=>({name:i.name,category:i.category,size:i.size,phase:i.phase,target:targetFor(i),have:Number(i.have||0),status:i.status,when:i.when,note:i.note})),
+  motherVaccines:motherVaccines.map(v=>({name:v.name,when:v.when,dose:v.dose,done:Boolean(state.motherVax[v.id]?.done),date:state.motherVax[v.id]?.date||''})),
+  babyVaccines:babyVaccines.map(v=>({name:v.name,age:v.age,dose:v.dose,done:Boolean(state.babyVax[v.id]?.done),date:state.babyVax[v.id]?.date||''})),
+  medicalRecords:state.medicalRecords.slice(-30).map(r=>({subject:r.subject,date:r.date,type:r.type,status:r.status,professional:r.professional,location:r.location,notes:String(r.notes||'').slice(0,1200)})),
+  priceWatch:state.watch.map(w=>({name:w.name,current:Number(w.current||0),target:Number(w.target||0),url:w.url||''}))
+ };
+}
+window.sendAgent=async()=>{
+ const i=$('#agentInput'),q=i.value.trim();if(!q)return;
+ const m=$('#messages');
+ m.insertAdjacentHTML('beforeend',`<div class="msg user">${esc(q)}</div>`);i.value='';m.scrollTop=m.scrollHeight;
+ const thinkingId='think'+Date.now();
+ m.insertAdjacentHTML('beforeend',`<div class="msg bot" id="${thinkingId}">Pensando...</div>`);m.scrollTop=m.scrollHeight;
+ let answer='';
+ try{
+  const res=await fetch('/api/agent',{method:'POST',headers:{'Content-Type':'application/json',...authHeaders()},body:JSON.stringify({question:q,history:agentHistory.slice(-8),context:agentContext()})});
+  if(res.ok){const data=await res.json();answer=String(data.answer||'').trim()}
+ }catch(e){}
+ if(!answer)answer=agentAnswer(q);
+ agentHistory.push({role:'user',content:q},{role:'assistant',content:answer});
+ if(agentHistory.length>16)agentHistory=agentHistory.slice(-16);
+ const el=document.getElementById(thinkingId);if(el)el.innerHTML=esc(answer).replaceAll('\n','<br>');
+ m.scrollTop=m.scrollHeight;
+};
 function agentAnswer(q){const t=q.toLowerCase(),st=stats();
  if(/semana|gesta|quanto tempo/.test(t))return `Hoje a Isabela está com ${weeks} semanas${days?` e ${days} dias`:''}. Pela transferência de embrião D5 em 31/07/2026, no dia 06/09/2026 ela completa exatamente 8 semanas.`;
  if(/falta.*nascimento|antes.*nascer|nascimento.*falta/.test(t)){const miss=state.items.filter(i=>i.essential&&['Nascimento','0–3m'].includes(i.phase)&&targetFor(i)>i.have&&i.status!=='Evitar').slice(0,10);return miss.length?`Para a fase inicial, os principais itens ainda faltando são:\n• ${miss.map(i=>`${i.name} (${i.size}) — ${targetFor(i)-i.have}`).join('\n• ')}`:'Os essenciais iniciais planejados estão cobertos.'}

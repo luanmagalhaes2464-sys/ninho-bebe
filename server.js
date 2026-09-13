@@ -111,6 +111,34 @@ app.put("/api/state", requireEditorAccess, async (req, res) => {
   }
 });
 
+app.post("/api/agent", requireReadAccess, async (req, res) => {
+  try {
+    if (!process.env.OPENAI_API_KEY) return res.status(503).json({ error: "OPENAI_API_KEY não configurada" });
+    const { question = "", history = [], context = {} } = req.body || {};
+    if (!String(question).trim()) return res.status(400).json({ error: "Pergunta vazia" });
+
+    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const safeHistory = Array.isArray(history) ? history.slice(-8).map(m => ({
+      role: m?.role === "assistant" ? "assistant" : "user",
+      content: String(m?.content || "").slice(0, 3000)
+    })) : [];
+    const contextText = JSON.stringify(context).slice(0, 55000);
+
+    const response = await client.responses.create({
+      model: process.env.OPENAI_MODEL || "gpt-5",
+      instructions: "Você é o Agente Ninho, assistente inteligente da família de Ian. Responda em português brasileiro, de forma natural, direta e útil. Você não está limitado a perguntas predefinidas: responda perguntas livres sobre Ian, Isabela, gestação, FIV, enxoval, fraldas, vacinas, consultas, alimentação do bebê, desenvolvimento, orçamento e dados cadastrados no Ninho. Use primeiro os dados do contexto do aplicativo. Não invente itens, compras, consultas, exames, vacinas aplicadas ou valores que não estejam no contexto. Se a pergunta for geral e não depender dos dados cadastrados, use conhecimento geral. Para saúde, ajude a entender e dê orientação prudente, mas não faça diagnóstico nem substitua obstetra/pediatra. Sinais de urgência devem receber orientação adequada, sem alarmismo. Lembre que Ian nasce em 2027 e calendários de vacinação podem mudar. Dados fixos: o bebê se chama Ian e é menino; a gestante é Isabela; FIV com transferência de embrião D5 em 31/07/2026; previsão de parto 18/04/2027. Nunca revele nem solicite PIN, chave de API, DATABASE_URL ou outros segredos.",
+      input: [
+        ...safeHistory.map(m => ({ role: m.role, content: [{ type: "input_text", text: m.content }] })),
+        { role: "user", content: [{ type: "input_text", text: "CONTEXTO ATUAL DO NINHO:\n" + contextText + "\n\nPERGUNTA:\n" + String(question).slice(0,5000) }] }
+      ]
+    });
+    res.json({ answer: response.output_text || "Não consegui formular uma resposta agora.", role: req.ninhoRole });
+  } catch (err) {
+    console.error("agent", err);
+    res.status(500).json({ error: "Não foi possível responder agora" });
+  }
+});
+
 app.post("/api/medical-explain", requireReadAccess, async (req, res) => {
   try {
     if (!process.env.OPENAI_API_KEY) {
