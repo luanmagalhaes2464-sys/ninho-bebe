@@ -1,4 +1,4 @@
-const CACHE = 'ninho-v18-auditoria-enxoval-vsr';
+const CACHE = 'ninho-v19-ian';
 const ASSETS = ['./', './index.html', './styles.css', './app.js', './manifest.webmanifest', './mascote-ninho-v2.webp'];
 
 self.addEventListener('install', event => {

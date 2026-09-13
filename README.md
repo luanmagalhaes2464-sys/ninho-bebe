@@ -1,6 +1,6 @@
-# Ninho — Ian ou Luísa
+# Ninho — Ian
 
-Aplicativo web/PWA para acompanhar a gestação da Isabela e organizar a chegada de Ian ou Luísa, com enxoval até 2 anos, vacinas, acompanhamento médico, orçamento, chá de fraldas, promoções e Agente Ninho.
+Aplicativo web/PWA para acompanhar a gestação da Isabela e organizar a chegada de Ian, com enxoval até 2 anos, vacinas, acompanhamento médico, orçamento, chá de fraldas, promoções e Agente Ninho.
 
 ## Estado atual da gestação
 
