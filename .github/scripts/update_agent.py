@@ -1,7 +1,7 @@
 from pathlib import Path
 import re
 
-# Atualiza frontend
+# FRONTEND: usa IA quando disponível e fallback local inteligente quando a API falhar.
 p = Path('app.js')
 s = p.read_text()
 start = s.index('window.ask=q=>')
@@ -27,12 +27,17 @@ window.sendAgent=async()=>{
  m.insertAdjacentHTML('beforeend',`<div class="msg user">${esc(q)}</div>`);i.value='';m.scrollTop=m.scrollHeight;
  const thinkingId='think'+Date.now();
  m.insertAdjacentHTML('beforeend',`<div class="msg bot" id="${thinkingId}">Pensando...</div>`);m.scrollTop=m.scrollHeight;
- let answer='';
+ let answer='',apiError='';
  try{
   const res=await fetch('/api/agent',{method:'POST',headers:{'Content-Type':'application/json',...authHeaders()},body:JSON.stringify({question:q,history:agentHistory.slice(-8),context:agentContext()})});
-  if(res.ok){const data=await res.json();answer=String(data.answer||'').trim()}
- }catch(e){}
- if(!answer)answer=agentAnswer(q);
+  const data=await res.json().catch(()=>({}));
+  if(res.ok) answer=String(data.answer||'').trim();
+  else apiError=String(data.error||('HTTP '+res.status));
+ }catch(e){apiError='falha de conexão'}
+ if(!answer){
+  answer=agentAnswer(q);
+  if(apiError && /Posso responder sobre:/.test(answer)) answer='Não consegui usar a IA online agora. Tente novamente em alguns segundos. Detalhe: '+apiError+'.';
+ }
  agentHistory.push({role:'user',content:q},{role:'assistant',content:answer});
  if(agentHistory.length>16)agentHistory=agentHistory.slice(-16);
  const el=document.getElementById(thinkingId);if(el)el.innerHTML=esc(answer).replaceAll('\n','<br>');
@@ -40,16 +45,25 @@ window.sendAgent=async()=>{
 };
 '''
 s = s[:start] + front + s[end:]
+
+# Fallback local: responde fatos básicos mesmo sem a API externa.
+needle = "function agentAnswer(q){const t=q.toLowerCase(),st=stats();\n"
+if needle in s and "nome.*beb" not in s[s.index(needle):s.index(needle)+700]:
+    extra = " if(/nome.*beb|beb.*nome|como.*chama|chama.*beb/.test(t))return `O nome do bebê é ${PROFILE.babyNames}. Ele é menino.`;\n if(/sexo.*beb|menino|menina/.test(t))return `${PROFILE.babyNames} é menino.`;\n if(/quando.*nasce|previs.*parto|data.*parto/.test(t))return `A previsão do parto do Ian é ${fmtDate(PROFILE.birthEstimate)}.`;\n"
+    s = s.replace(needle, needle + extra)
 p.write_text(s)
 
-# Atualiza backend
+# BACKEND: rota de IA com logs seguros para diagnóstico.
 p = Path('server.js')
 s = p.read_text()
-anchor = 'app.post("/api/medical-explain", requireReadAccess, async (req, res) => {'
-if '/api/agent' not in s:
-    route = r'''app.post("/api/agent", requireReadAccess, async (req, res) => {
+start = s.index('app.post("/api/agent", requireReadAccess, async (req, res) => {')
+end = s.index('app.post("/api/medical-explain", requireReadAccess, async (req, res) => {', start)
+route = r'''app.post("/api/agent", requireReadAccess, async (req, res) => {
   try {
-    if (!process.env.OPENAI_API_KEY) return res.status(503).json({ error: "OPENAI_API_KEY não configurada" });
+    if (!process.env.OPENAI_API_KEY) {
+      console.warn("agent: OPENAI_API_KEY ausente");
+      return res.status(503).json({ error: "IA não configurada no servidor" });
+    }
     const { question = "", history = [], context = {} } = req.body || {};
     if (!String(question).trim()) return res.status(400).json({ error: "Pergunta vazia" });
 
@@ -70,19 +84,21 @@ if '/api/agent' not in s:
     });
     res.json({ answer: response.output_text || "Não consegui formular uma resposta agora.", role: req.ninhoRole });
   } catch (err) {
-    console.error("agent", err);
-    res.status(500).json({ error: "Não foi possível responder agora" });
+    console.error("agent error", { status: err?.status, code: err?.code, type: err?.type, message: err?.message });
+    res.status(500).json({ error: "A IA não conseguiu responder agora" });
   }
 });
 
 '''
-    if anchor not in s:
-        raise RuntimeError('Âncora do servidor não encontrada')
-    s = s.replace(anchor, route + anchor)
+s = s[:start] + route + s[end:]
+
+startup = '    console.log(`Ninho rodando na porta ${port}`);'
+if startup in s and 'Agente IA configurado:' not in s:
+    s = s.replace(startup, startup + '\n    console.log("Agente IA configurado:", Boolean(process.env.OPENAI_API_KEY), "modelo:", process.env.OPENAI_MODEL || "gpt-5");')
 p.write_text(s)
 
-# Atualiza cache
+# CACHE
 p = Path('sw.js')
 s = p.read_text()
-s = re.sub(r"const CACHE = 'ninho-[^']+';", "const CACHE = 'ninho-v20-agente-ia';", s)
+s = re.sub(r"const CACHE = 'ninho-[^']+';", "const CACHE = 'ninho-v21-agente-diagnostico';", s)
 p.write_text(s)
