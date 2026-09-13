@@ -6,8 +6,7 @@ p = Path('app.js')
 s = p.read_text()
 start = s.index('window.ask=q=>')
 end = s.index('function agentAnswer', start)
-front = r'''let agentHistory=[];
-window.ask=q=>{$('#agentInput').value=q;sendAgent()};
+front = r'''window.ask=q=>{$('#agentInput').value=q;sendAgent()};
 function agentContext(){
  const st=stats();
  return {
