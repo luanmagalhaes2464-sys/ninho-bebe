@@ -653,18 +653,26 @@ window.sendAgent=async()=>{
  m.insertAdjacentHTML('beforeend',`<div class="msg user">${esc(q)}</div>`);i.value='';m.scrollTop=m.scrollHeight;
  const thinkingId='think'+Date.now();
  m.insertAdjacentHTML('beforeend',`<div class="msg bot" id="${thinkingId}">Pensando...</div>`);m.scrollTop=m.scrollHeight;
- let answer='';
+ let answer='',apiError='';
  try{
   const res=await fetch('/api/agent',{method:'POST',headers:{'Content-Type':'application/json',...authHeaders()},body:JSON.stringify({question:q,history:agentHistory.slice(-8),context:agentContext()})});
-  if(res.ok){const data=await res.json();answer=String(data.answer||'').trim()}
- }catch(e){}
- if(!answer)answer=agentAnswer(q);
+  const data=await res.json().catch(()=>({}));
+  if(res.ok) answer=String(data.answer||'').trim();
+  else apiError=String(data.error||('HTTP '+res.status));
+ }catch(e){apiError='falha de conexão'}
+ if(!answer){
+  answer=agentAnswer(q);
+  if(apiError && /Posso responder sobre:/.test(answer)) answer='Não consegui usar a IA online agora. Tente novamente em alguns segundos. Detalhe: '+apiError+'.';
+ }
  agentHistory.push({role:'user',content:q},{role:'assistant',content:answer});
  if(agentHistory.length>16)agentHistory=agentHistory.slice(-16);
  const el=document.getElementById(thinkingId);if(el)el.innerHTML=esc(answer).replaceAll('\n','<br>');
  m.scrollTop=m.scrollHeight;
 };
 function agentAnswer(q){const t=q.toLowerCase(),st=stats();
+ if(/nome.*beb|beb.*nome|como.*chama|chama.*beb/.test(t))return `O nome do bebê é ${PROFILE.babyNames}. Ele é menino.`;
+ if(/sexo.*beb|menino|menina/.test(t))return `${PROFILE.babyNames} é menino.`;
+ if(/quando.*nasce|previs.*parto|data.*parto/.test(t))return `A previsão do parto do Ian é ${fmtDate(PROFILE.birthEstimate)}.`;
  if(/semana|gesta|quanto tempo/.test(t))return `Hoje a Isabela está com ${weeks} semanas${days?` e ${days} dias`:''}. Pela transferência de embrião D5 em 31/07/2026, no dia 06/09/2026 ela completa exatamente 8 semanas.`;
  if(/falta.*nascimento|antes.*nascer|nascimento.*falta/.test(t)){const miss=state.items.filter(i=>i.essential&&['Nascimento','0–3m'].includes(i.phase)&&targetFor(i)>i.have&&i.status!=='Evitar').slice(0,10);return miss.length?`Para a fase inicial, os principais itens ainda faltando são:\n• ${miss.map(i=>`${i.name} (${i.size}) — ${targetFor(i)-i.have}`).join('\n• ')}`:'Os essenciais iniciais planejados estão cobertos.'}
  if(/depois.*6|6 meses|futuro/.test(t)){const x=state.items.filter(i=>!['Nascimento','0–3m','3–6m'].includes(i.phase)&&targetFor(i)>0).slice(0,12);return `Itens que podem esperar: ${x.map(i=>`${i.name} [${i.phase}]`).join(', ')}. A ideia é comprar perto da fase para evitar tamanho/estação errados.`}

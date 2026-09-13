@@ -113,7 +113,10 @@ app.put("/api/state", requireEditorAccess, async (req, res) => {
 
 app.post("/api/agent", requireReadAccess, async (req, res) => {
   try {
-    if (!process.env.OPENAI_API_KEY) return res.status(503).json({ error: "OPENAI_API_KEY não configurada" });
+    if (!process.env.OPENAI_API_KEY) {
+      console.warn("agent: OPENAI_API_KEY ausente");
+      return res.status(503).json({ error: "IA não configurada no servidor" });
+    }
     const { question = "", history = [], context = {} } = req.body || {};
     if (!String(question).trim()) return res.status(400).json({ error: "Pergunta vazia" });
 
@@ -134,8 +137,8 @@ app.post("/api/agent", requireReadAccess, async (req, res) => {
     });
     res.json({ answer: response.output_text || "Não consegui formular uma resposta agora.", role: req.ninhoRole });
   } catch (err) {
-    console.error("agent", err);
-    res.status(500).json({ error: "Não foi possível responder agora" });
+    console.error("agent error", { status: err?.status, code: err?.code, type: err?.type, message: err?.message });
+    res.status(500).json({ error: "A IA não conseguiu responder agora" });
   }
 });
 
@@ -175,6 +178,7 @@ app.listen(port, "0.0.0.0", async () => {
   try {
     if (databaseEnabled()) await ensureSchema();
     console.log(`Ninho rodando na porta ${port}`);
+    console.log("Agente IA configurado:", Boolean(process.env.OPENAI_API_KEY), "modelo:", process.env.OPENAI_MODEL || "gpt-5");
   } catch (err) {
     console.error("Falha ao preparar Neon:", err);
   }
