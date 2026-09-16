@@ -49,6 +49,21 @@ function mercadoLivreId(text = '') {
   return m ? `MLB${m[1]}` : null;
 }
 
+function normalizeWords(text = '') {
+  return String(text)
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/[^a-z0-9 ]+/g, ' ')
+    .split(/\s+/).filter(w => w.length >= 3 && !['para','com','sem','uma','uns','das','dos','beb','bebe','baby'].includes(w));
+}
+
+function titleScore(query, title) {
+  const q = [...new Set(normalizeWords(query))];
+  const t = new Set(normalizeWords(title));
+  if (!q.length) return 0;
+  const hits = q.filter(w => t.has(w)).length;
+  return hits / q.length;
+}
+
 async function mercadoLivreApiPrice(id, signal) {
   const itemRes = await fetch(`https://api.mercadolibre.com/items/${id}`, {
     signal,
@@ -73,6 +88,30 @@ async function mercadoLivreApiPrice(id, signal) {
     if (winnerId && String(winnerId).toUpperCase() !== id.toUpperCase()) return mercadoLivreApiPrice(String(winnerId).replace('-', ''), signal);
   }
   return null;
+}
+
+async function mercadoLivreSearchPrice(name, signal) {
+  const query = String(name || '').trim();
+  if (!query) return null;
+  const res = await fetch(`https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent(query)}&limit=8`, {
+    signal,
+    headers: { 'accept': 'application/json', 'user-agent': 'Ninho-Price-Monitor/1.0' }
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  const ranked = (Array.isArray(data?.results) ? data.results : [])
+    .map(r => ({...r, _score:titleScore(query, r?.title || '')}))
+    .filter(r => brlNumber(r?.price))
+    .sort((a,b) => b._score - a._score);
+  const best = ranked[0];
+  if (!best || best._score < 0.55) return null;
+  return {
+    price: brlNumber(best.price),
+    source: 'API pública do Mercado Livre · busca pelo título',
+    finalUrl: best.permalink || '',
+    matchedTitle: best.title || '',
+    matchScore: best._score
+  };
 }
 
 function walkJson(value, out) {
@@ -148,7 +187,7 @@ function extractPrice(html) {
   return candidates[0] || null;
 }
 
-async function fetchProductPrice(rawUrl) {
+async function fetchProductPrice(rawUrl, productName = '') {
   const url = normalizeUrl(rawUrl);
   if (!url) throw new Error('Link não suportado automaticamente');
 
@@ -163,31 +202,42 @@ async function fetchProductPrice(rawUrl) {
       }
     }
 
-    const res = await fetch(url, {
-      redirect: 'follow',
-      signal: controller.signal,
-      headers: {
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/153 Safari/537.36',
-        'accept-language': 'pt-BR,pt;q=0.9,en;q=0.6',
-        'accept': 'text/html,application/xhtml+xml'
-      }
-    });
-    if (!res.ok) throw new Error(`Loja respondeu HTTP ${res.status}`);
-    const contentType = res.headers.get('content-type') || '';
-    if (!contentType.includes('text/html')) throw new Error('Página não retornou HTML de produto');
-    const html = (await res.text()).slice(0, 5000000);
+    let pageError = null;
+    try {
+      const res = await fetch(url, {
+        redirect: 'follow',
+        signal: controller.signal,
+        headers: {
+          'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/153 Safari/537.36',
+          'accept-language': 'pt-BR,pt;q=0.9,en;q=0.6',
+          'accept': 'text/html,application/xhtml+xml'
+        }
+      });
+      if (!res.ok) throw new Error(`Loja respondeu HTTP ${res.status}`);
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('text/html')) throw new Error('Página não retornou HTML de produto');
+      const html = (await res.text()).slice(0, 5000000);
 
-    if (isMercadoLivre(url)) {
-      const idFromPage = mercadoLivreId(res.url) || mercadoLivreId(html.match(/(?:item_id|itemId)["']?\s*[:=]\s*["']?(MLB[-_ ]?\d{6,})/i)?.[1] || '') || mercadoLivreId(html);
-      if (idFromPage) {
-        const api = await mercadoLivreApiPrice(idFromPage, controller.signal);
-        if (api) return api;
+      if (isMercadoLivre(url)) {
+        const idFromPage = mercadoLivreId(res.url) || mercadoLivreId(html.match(/(?:item_id|itemId)["']?\s*[:=]\s*["']?(MLB[-_ ]?\d{6,})/i)?.[1] || '') || mercadoLivreId(html);
+        if (idFromPage) {
+          const api = await mercadoLivreApiPrice(idFromPage, controller.signal);
+          if (api) return api;
+        }
       }
+
+      const found = extractPrice(html);
+      if (found) return { ...found, finalUrl: res.url };
+    } catch (err) {
+      pageError = err;
     }
 
-    const found = extractPrice(html);
-    if (!found) throw new Error('Não consegui identificar o preço nesta página');
-    return { ...found, finalUrl: res.url };
+    if (isMercadoLivre(url)) {
+      const searched = await mercadoLivreSearchPrice(productName, controller.signal);
+      if (searched) return searched;
+    }
+
+    throw pageError || new Error('Não consegui identificar o preço nesta página');
   } finally {
     clearTimeout(timer);
   }
@@ -221,7 +271,7 @@ export async function refreshWatchPrices({ force = false } = {}) {
     }
 
     try {
-      const found = await fetchProductPrice(item.url);
+      const found = await fetchProductPrice(item.url, item.name || '');
       const old = Number(item.current || 0);
       item.previous = old || null;
       item.current = Number(found.price.toFixed(2));
@@ -231,13 +281,14 @@ export async function refreshWatchPrices({ force = false } = {}) {
       item.lastError = '';
       item.priceSource = found.source;
       item.finalUrl = found.finalUrl || item.url;
+      item.matchedTitle = found.matchedTitle || '';
       item.auto = true;
       item.history = Array.isArray(item.history) ? item.history : [];
       const lastPoint = item.history[item.history.length - 1];
       if (!lastPoint || Number(lastPoint.price) !== item.current) item.history.push({ at: nowIso, price: item.current });
       item.history = item.history.slice(-MAX_HISTORY);
       touched = true;
-      results.push({ id: item.id, ok: true, price: item.current, target: Number(item.target || 0), hit: Number(item.target || 0) > 0 && item.current <= Number(item.target) });
+      results.push({ id: item.id, ok: true, price: item.current, target: Number(item.target || 0), hit: Number(item.target || 0) > 0 && item.current <= Number(item.target), source: found.source });
     } catch (err) {
       item.lastChecked = nowIso;
       item.lastError = String(err?.message || 'Falha ao consultar preço').slice(0, 180);
