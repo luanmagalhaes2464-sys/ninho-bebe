@@ -1,0 +1,34 @@
+name: Instalar radar automático
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/scripts/install_price_monitor.py'
+
+permissions:
+  contents: write
+
+jobs:
+  instalar:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Aplicar integração
+        run: python3 .github/scripts/install_price_monitor.py
+      - name: Validar JavaScript
+        run: |
+          node --check server.js
+          node --check price-monitor.js
+          node --check price-radar.js
+      - name: Publicar
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add server.js index.html sw.js
+          git commit -m "Ativa radar automático de preços" || exit 0
+          git push
