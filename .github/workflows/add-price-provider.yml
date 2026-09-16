@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - '.github/scripts/add_brightdata_price_fallback.py'
+      - '.github/workflows/add-price-provider.yml'
 
 permissions:
   contents: write
