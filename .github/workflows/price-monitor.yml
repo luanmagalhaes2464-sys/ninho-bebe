@@ -14,6 +14,9 @@ jobs:
   atualizar-precos:
     runs-on: ubuntu-latest
     steps:
+      - name: Aguardar deploy quando for alteração de código
+        if: github.event_name == 'push'
+        run: sleep 75
       - name: Acordar o Ninho e atualizar preços
         run: |
           curl --fail-with-body --retry 3 --retry-all-errors --retry-delay 10 --max-time 180 \
