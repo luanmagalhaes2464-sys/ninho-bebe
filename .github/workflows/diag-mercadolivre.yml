@@ -1,0 +1,30 @@
+name: Diagnóstico Mercado Livre
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/diag-mercadolivre.yml']
+
+jobs:
+  diagnostico:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Testar API pública e busca web
+        shell: bash
+        run: |
+          set +e
+          Q='Carrinho Conforto Bebê Reversível Berço Moisés Dobrável'
+          echo '--- API ---'
+          curl -sS -w '\nHTTP=%{http_code}\n' --get 'https://api.mercadolibre.com/sites/MLB/search' --data-urlencode "q=$Q" --data 'limit=5' -o /tmp/ml.json
+          head -c 2000 /tmp/ml.json; echo
+          echo '--- LISTA ---'
+          curl -L -sS -A 'Mozilla/5.0' -w '\nHTTP=%{http_code}\n' 'https://lista.mercadolivre.com.br/carrinho-conforto-bebe-reversivel-berco-moises-dobravel' -o /tmp/lista.html
+          echo SIZE=$(wc -c < /tmp/lista.html)
+          python3 - <<'PY'
+          import re
+          s=open('/tmp/lista.html',encoding='utf-8',errors='ignore').read()
+          for key in ['Carrinho Conforto','andes-money-amount__fraction','poly-price__current','price']:
+              print(key, s.lower().find(key.lower()))
+          i=s.lower().find('carrinho conforto')
+          print(s[max(0,i-1000):i+3000] if i>=0 else s[:2000])
+          PY
