@@ -1,7 +1,10 @@
 import { databaseEnabled, getState, putState } from './db.js';
 
-const MIN_CHECK_MS = 5 * 60 * 60 * 1000;
+const MIN_SUCCESS_MS = 5 * 60 * 60 * 1000;
+const MIN_ERROR_RETRY_MS = 60 * 1000;
 const MAX_HISTORY = 60;
+let lastScheduledMemory = 0;
+
 const SUPPORTED_HOSTS = [
   /(^|\.)mercadolivre\.com\.br$/i,
   /(^|\.)mercadolivre\.com$/i,
@@ -34,6 +37,42 @@ function brlNumber(raw) {
   else if (/^\d{1,3}(,\d{3})+\.\d{2}$/.test(s)) s = s.replace(/,/g, '');
   const n = Number(s);
   return Number.isFinite(n) && n > 0.5 && n < 10000000 ? n : null;
+}
+
+function isMercadoLivre(url) {
+  return /(^|\.)mercadolivre\.com(?:\.br)?$/i.test(url.hostname);
+}
+
+function mercadoLivreId(text = '') {
+  const decoded = (()=>{ try { return decodeURIComponent(String(text)); } catch { return String(text); } })();
+  const m = decoded.match(/\bMLB[-_ ]?(\d{6,})\b/i);
+  return m ? `MLB${m[1]}` : null;
+}
+
+async function mercadoLivreApiPrice(id, signal) {
+  const itemRes = await fetch(`https://api.mercadolibre.com/items/${id}`, {
+    signal,
+    headers: { 'accept': 'application/json', 'user-agent': 'Ninho-Price-Monitor/1.0' }
+  });
+  if (itemRes.ok) {
+    const item = await itemRes.json();
+    const p = brlNumber(item?.price);
+    if (p) return { price: p, source: 'API pública do Mercado Livre', finalUrl: item?.permalink || '' };
+  }
+
+  const productRes = await fetch(`https://api.mercadolibre.com/products/${id}`, {
+    signal,
+    headers: { 'accept': 'application/json', 'user-agent': 'Ninho-Price-Monitor/1.0' }
+  });
+  if (productRes.ok) {
+    const product = await productRes.json();
+    const winner = product?.buy_box_winner || product?.buyBoxWinner;
+    const p = brlNumber(winner?.price);
+    if (p) return { price: p, source: 'API pública do Mercado Livre', finalUrl: product?.permalink || '' };
+    const winnerId = winner?.item_id || winner?.itemId;
+    if (winnerId && String(winnerId).toUpperCase() !== id.toUpperCase()) return mercadoLivreApiPrice(String(winnerId).replace('-', ''), signal);
+  }
+  return null;
 }
 
 function walkJson(value, out) {
@@ -69,19 +108,38 @@ function extractPrice(html) {
     }
   }
 
-  const amazon = html.match(/a-offscreen[^>]*>\s*R\$\s*([\d\.]+,\d{2})\s*</i);
-  if (amazon) {
-    const p = brlNumber(amazon[1]);
-    if (p) candidates.push({ price: p, source: 'preço exibido pela loja' });
+  const amazonPatterns = [
+    /a-offscreen[^>]*>\s*R\$\s*([\d\.]+,\d{2})\s*</i,
+    /"priceToPay"\s*:\s*\{[^}]*"value"\s*:\s*([0-9.]+)/i
+  ];
+  for (const re of amazonPatterns) {
+    const m = html.match(re);
+    if (m) {
+      const p = brlNumber(m[1]);
+      if (p) candidates.push({ price: p, source: 'preço exibido pela loja' });
+    }
   }
 
-  const ml = html.match(/andes-money-amount__fraction[^>]*>\s*([\d\.]+)\s*<[\s\S]{0,250}?andes-money-amount__cents[^>]*>\s*(\d{2})\s*</i);
+  const ml = html.match(/andes-money-amount__fraction[^>]*>\s*([\d\.]+)\s*<[\s\S]{0,350}?andes-money-amount__cents[^>]*>\s*(\d{2})\s*</i);
   if (ml) {
     const p = brlNumber(`${ml[1]},${ml[2]}`);
     if (p) candidates.push({ price: p, source: 'preço exibido pela loja' });
   }
 
-  const generic = html.match(/["']price["']\s*:\s*["']?([0-9]{1,7}(?:[\.,][0-9]{1,2})?)["']?/i);
+  const magaluPatterns = [
+    /data-testid=["']price-value["'][^>]*>\s*R\$\s*([\d\.]+,\d{2})/i,
+    /"bestPrice"\s*:\s*([0-9.]+)/i,
+    /"price"\s*:\s*\{[^}]*"value"\s*:\s*([0-9.]+)/i
+  ];
+  for (const re of magaluPatterns) {
+    const m = html.match(re);
+    if (m) {
+      const p = brlNumber(m[1]);
+      if (p) candidates.push({ price: p, source: 'preço exibido pela loja' });
+    }
+  }
+
+  const generic = html.match(/["'](?:salePrice|currentPrice|price)["']\s*:\s*["']?([0-9]{1,7}(?:[\.,][0-9]{1,2})?)["']?/i);
   if (!candidates.length && generic) {
     const p = brlNumber(generic[1]);
     if (p) candidates.push({ price: p, source: 'dados da página' });
@@ -95,8 +153,16 @@ async function fetchProductPrice(rawUrl) {
   if (!url) throw new Error('Link não suportado automaticamente');
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 15000);
+  const timer = setTimeout(() => controller.abort(), 18000);
   try {
+    if (isMercadoLivre(url)) {
+      const idFromUrl = mercadoLivreId(url.href);
+      if (idFromUrl) {
+        const api = await mercadoLivreApiPrice(idFromUrl, controller.signal);
+        if (api) return api;
+      }
+    }
+
     const res = await fetch(url, {
       redirect: 'follow',
       signal: controller.signal,
@@ -109,7 +175,16 @@ async function fetchProductPrice(rawUrl) {
     if (!res.ok) throw new Error(`Loja respondeu HTTP ${res.status}`);
     const contentType = res.headers.get('content-type') || '';
     if (!contentType.includes('text/html')) throw new Error('Página não retornou HTML de produto');
-    const html = (await res.text()).slice(0, 4000000);
+    const html = (await res.text()).slice(0, 5000000);
+
+    if (isMercadoLivre(url)) {
+      const idFromPage = mercadoLivreId(res.url) || mercadoLivreId(html.match(/(?:item_id|itemId)["']?\s*[:=]\s*["']?(MLB[-_ ]?\d{6,})/i)?.[1] || '') || mercadoLivreId(html);
+      if (idFromPage) {
+        const api = await mercadoLivreApiPrice(idFromPage, controller.signal);
+        if (api) return api;
+      }
+    }
+
     const found = extractPrice(html);
     if (!found) throw new Error('Não consegui identificar o preço nesta página');
     return { ...found, finalUrl: res.url };
@@ -120,6 +195,11 @@ async function fetchProductPrice(rawUrl) {
 
 export async function refreshWatchPrices({ force = false } = {}) {
   if (!databaseEnabled()) throw new Error('Banco não configurado');
+  if (!force && Date.now() - lastScheduledMemory < 60 * 1000) {
+    return { ok: true, skipped: true, reason: 'varredura executada há menos de 1 minuto', updated: 0, alerts: 0, errors: 0, results: [] };
+  }
+  if (!force) lastScheduledMemory = Date.now();
+
   const stored = await getState();
   const state = stored?.data && typeof stored.data === 'object' ? stored.data : {};
   const watch = Array.isArray(state.watch) ? state.watch : [];
@@ -134,7 +214,8 @@ export async function refreshWatchPrices({ force = false } = {}) {
       continue;
     }
     const last = item.lastChecked ? new Date(item.lastChecked).getTime() : 0;
-    if (!force && last && Date.now() - last < MIN_CHECK_MS) {
+    const waitMs = item.lastError ? MIN_ERROR_RETRY_MS : MIN_SUCCESS_MS;
+    if (!force && last && Date.now() - last < waitMs) {
       results.push({ id: item.id, ok: true, skipped: true, reason: 'checado recentemente' });
       continue;
     }
