@@ -8,6 +8,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/price-monitor.yml'
+      - 'price-monitor.js'
 
 jobs:
   atualizar-precos:
