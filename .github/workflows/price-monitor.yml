@@ -1,0 +1,17 @@
+name: Radar automático de preços
+
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+jobs:
+  atualizar-precos:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Acordar o Ninho e atualizar preços
+        run: |
+          curl --fail-with-body --retry 3 --retry-all-errors --retry-delay 10 --max-time 180 \
+            -X POST \
+            -H 'User-Agent: Ninho-Price-Monitor/1.0' \
+            https://ninho-bebe.onrender.com/api/prices/refresh/scheduled
