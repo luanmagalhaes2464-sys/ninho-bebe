@@ -9,13 +9,18 @@ jobs:
   diagnostico:
     runs-on: ubuntu-latest
     steps:
-      - name: Testar leitor remoto
+      - name: Testar Bing e Google
         shell: bash
         run: |
           set +e
-          echo '--- JINA LISTA ---'
-          curl -L -sS -A 'Mozilla/5.0' -w '\nHTTP=%{http_code}\n' 'https://r.jina.ai/http://lista.mercadolivre.com.br/carrinho-conforto-bebe-reversivel-berco-moises-dobravel' -o /tmp/jina.txt
-          echo SIZE=$(wc -c < /tmp/jina.txt)
-          grep -in -m 3 'Carrinho Conforto' /tmp/jina.txt || true
-          grep -in -m 10 'R\$' /tmp/jina.txt | head || true
-          head -c 3500 /tmp/jina.txt; echo
+          Q='"Carrinho Conforto Bebê Reversível Berço Moisés Dobrável" site:mercadolivre.com.br'
+          echo '--- BING RSS ---'
+          curl -L -sS -A 'Mozilla/5.0' --get 'https://www.bing.com/search' --data-urlencode "q=$Q" --data 'format=rss' -o /tmp/bing.xml
+          echo SIZE=$(wc -c < /tmp/bing.xml)
+          grep -io -m 10 '.\{0,120\}Carrinho Conforto.\{0,500\}' /tmp/bing.xml || true
+          grep -io -m 10 'R\$[^<]\{0,30\}' /tmp/bing.xml || true
+          echo '--- GOOGLE ---'
+          curl -L -sS -A 'Mozilla/5.0' --get 'https://www.google.com/search' --data-urlencode "q=$Q" -o /tmp/google.html
+          echo SIZE=$(wc -c < /tmp/google.html)
+          grep -io -m 5 '.\{0,120\}Carrinho Conforto.\{0,500\}' /tmp/google.html || true
+          grep -io -m 10 'R\$[^<]\{0,30\}' /tmp/google.html || true
