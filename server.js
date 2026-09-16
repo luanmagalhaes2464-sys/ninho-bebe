@@ -4,6 +4,7 @@ import path from "path";
 import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { databaseEnabled, ensureSchema, getState, putState } from "./db.js";
+import { refreshWatchPrices } from "./price-monitor.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -108,6 +109,26 @@ app.put("/api/state", requireEditorAccess, async (req, res) => {
   } catch (err) {
     console.error("put state", err);
     res.status(500).json({ error: "Não foi possível salvar os dados" });
+  }
+});
+
+app.post("/api/prices/refresh", requireEditorAccess, async (req, res) => {
+  try {
+    const result = await refreshWatchPrices({ force: true });
+    res.json(result);
+  } catch (err) {
+    console.error("price refresh", err);
+    res.status(500).json({ error: "Não foi possível atualizar os preços agora" });
+  }
+});
+
+app.post("/api/prices/refresh/scheduled", async (req, res) => {
+  try {
+    const result = await refreshWatchPrices({ force: false });
+    res.json(result);
+  } catch (err) {
+    console.error("scheduled price refresh", err);
+    res.status(500).json({ error: "Falha na varredura automática" });
   }
 });
 
