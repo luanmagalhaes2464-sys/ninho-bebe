@@ -71,7 +71,7 @@ function requireEditorAccess(req, res, next) {
 app.get("/api/health", async (_req, res) => {
   try {
     if (databaseEnabled()) await ensureSchema();
-    res.json({ ok: true, database: databaseEnabled(), ai: Boolean(process.env.OPENAI_API_KEY), time: new Date().toISOString() });
+    res.json({ ok: true, database: databaseEnabled(), ai: Boolean(process.env.OPENAI_API_KEY), priceProvider: Boolean(process.env.BRIGHTDATA_API_TOKEN), time: new Date().toISOString() });
   } catch (err) {
     console.error("health", err);
     res.status(503).json({ ok: false, database: databaseEnabled(), error: "Banco indisponível" });
@@ -83,7 +83,8 @@ app.get("/api/config", (_req, res) => {
     database: databaseEnabled(),
     ai: Boolean(process.env.OPENAI_API_KEY),
     ownerPinRequired: Boolean(process.env.NINHO_PIN),
-    visitorPinEnabled: Boolean(process.env.NINHO_VISITOR_PIN)
+    visitorPinEnabled: Boolean(process.env.NINHO_VISITOR_PIN),
+    priceProvider: Boolean(process.env.BRIGHTDATA_API_TOKEN)
   });
 });
 
@@ -200,6 +201,7 @@ app.listen(port, "0.0.0.0", async () => {
     if (databaseEnabled()) await ensureSchema();
     console.log(`Ninho rodando na porta ${port}`);
     console.log("Agente IA configurado:", Boolean(process.env.OPENAI_API_KEY), "modelo:", process.env.OPENAI_MODEL || "gpt-5");
+    console.log("Provedor de preços configurado:", Boolean(process.env.BRIGHTDATA_API_TOKEN));
   } catch (err) {
     console.error("Falha ao preparar Neon:", err);
   }
