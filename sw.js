@@ -1,4 +1,4 @@
-const CACHE = 'ninho-v22-medida-ian-evolucao';
+const CACHE = 'ninho-v23-visual-semanal-ian';
 const ASSETS = ['./', './index.html', './styles.css', './app.js', './price-radar.js', './manifest.webmanifest', './mascote-ninho-v2.webp'];
 
 self.addEventListener('install', event => {
