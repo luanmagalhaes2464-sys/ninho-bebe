@@ -522,16 +522,64 @@ function babyStageInfo(){
   const wk=clamp(weeks,4,40);
   return BABY_WEEK_GUIDE[wk]||BABY_WEEK_GUIDE[8];
 }
+function babyWeekVisual(wk){
+ const w=clamp(Number(wk)||8,4,40);
+ const early=w<8, embryo=w<11;
+ const p=clamp((w-4)/36,0,1);
+ const headR=Math.round(clamp(41-(w-8)*.72,24,43));
+ const bodyLen=Math.round(clamp(48+(w-7)*2.35,40,120));
+ const bodyW=Math.round(clamp(30+(w-7)*1.05,26,58));
+ const armLen=Math.round(clamp((w-5)*3.05,3,60));
+ const legLen=Math.round(clamp((w-5)*3.6,4,76));
+ const limbW=Math.round(clamp(4+(w-6)*.22,4,9));
+ const curl=Math.round(clamp(28-(w-8)*.55,8,30));
+ const lean=[-7,-3,2,5][w%4];
+ const hand=clamp(2+(w-8)*.28,2,6);
+ const foot=clamp(2.2+(w-8)*.3,2.2,7);
+ const headX=142,headY=74;
+ const torsoTopY=headY+headR*.7;
+ const torsoBottomY=torsoTopY+bodyLen;
+ const shoulderY=torsoTopY+bodyLen*.2;
+ const hipY=torsoBottomY-bodyLen*.18;
+ const face=w>=8?`<circle cx="${headX+headR*.48}" cy="${headY-2}" r="${w<11?1.8:2.4}" fill="#855044" opacity=".8"/><path d="M ${headX+headR*.58} ${headY+7} q 6 3 1 7" fill="none" stroke="#9b6254" stroke-width="1.6" stroke-linecap="round" opacity=".75"/>`:'';
+ const fingers=w>=10?`<path d="M ${194+armLen*.32} ${shoulderY+armLen*.38} l 6 -2 M ${194+armLen*.32} ${shoulderY+armLen*.38} l 5 3" stroke="#ad7566" stroke-width="1.2" stroke-linecap="round" opacity=".7"/>`:'';
+ const toes=w>=10?`<path d="M ${169+legLen*.45} ${hipY+legLen*.48} l 7 1 M ${169+legLen*.45} ${hipY+legLen*.48} l 6 4" stroke="#ad7566" stroke-width="1.2" stroke-linecap="round" opacity=".7"/>`:'';
+ const cord=`<path d="M 112 ${torsoTopY+bodyLen*.55} C 68 ${150+curl}, 92 212, 46 222" fill="none" stroke="rgba(255,210,193,.68)" stroke-width="5" stroke-linecap="round"/>`;
+ const label=early?'fase embrionária inicial':embryo?'fase embrionária':'fase fetal';
+ return `<svg class="baby-week-svg" viewBox="0 0 320 260" role="img" aria-label="Ilustração artística do desenvolvimento na semana ${w}">
+   <defs>
+    <radialGradient id="sac${w}" cx="42%" cy="38%" r="66%"><stop offset="0%" stop-color="#7f3d37"/><stop offset="55%" stop-color="#9b5247"/><stop offset="100%" stop-color="#63302c"/></radialGradient>
+    <linearGradient id="skin${w}" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ffd9ca"/><stop offset="48%" stop-color="#efb7a5"/><stop offset="100%" stop-color="#c98272"/></linearGradient>
+    <filter id="soft${w}" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="8" stdDeviation="7" flood-color="#3a1715" flood-opacity=".28"/></filter>
+   </defs>
+   <rect width="320" height="260" rx="30" fill="url(#sac${w})"/>
+   <ellipse cx="160" cy="132" rx="128" ry="108" fill="rgba(255,224,212,.08)" stroke="rgba(255,237,229,.16)" stroke-width="2"/>
+   <g opacity=".32"><circle cx="66" cy="54" r="2.4" fill="#f7c9ba"/><circle cx="255" cy="75" r="3" fill="#f7c9ba"/><circle cx="276" cy="173" r="2" fill="#f7c9ba"/><circle cx="75" cy="187" r="2.8" fill="#f7c9ba"/></g>
+   ${cord}
+   <g class="baby-week-body" filter="url(#soft${w})" transform="rotate(${lean} 155 135)">
+    <path d="M ${headX-8} ${torsoTopY} C ${headX-bodyW*.8} ${torsoTopY+bodyLen*.08}, ${headX-bodyW*.72} ${torsoBottomY-bodyLen*.2}, ${headX-bodyW*.22} ${torsoBottomY} C ${headX+bodyW*.72} ${torsoBottomY+curl*.32}, ${headX+bodyW*.86} ${torsoTopY+bodyLen*.34}, ${headX+9} ${torsoTopY} Z" fill="url(#skin${w})"/>
+    <ellipse cx="${headX}" cy="${headY}" rx="${headR*.92}" ry="${headR}" fill="url(#skin${w})"/>
+    ${face}
+    <path d="M ${headX-bodyW*.34} ${shoulderY} C ${headX-bodyW*.65-armLen*.16} ${shoulderY+armLen*.12}, ${103-armLen*.24} ${shoulderY+armLen*.48}, ${101-armLen*.12} ${shoulderY+armLen*.68}" fill="none" stroke="#e9aa98" stroke-width="${limbW}" stroke-linecap="round"/>
+    <circle cx="${101-armLen*.12}" cy="${shoulderY+armLen*.68}" r="${hand}" fill="#e6a38f"/>
+    <path d="M ${headX+bodyW*.34} ${shoulderY+2} C ${headX+bodyW*.62+armLen*.18} ${shoulderY+armLen*.04}, ${186+armLen*.22} ${shoulderY+armLen*.22}, ${194+armLen*.32} ${shoulderY+armLen*.38}" fill="none" stroke="#efb7a5" stroke-width="${limbW}" stroke-linecap="round"/>
+    <circle cx="${194+armLen*.32}" cy="${shoulderY+armLen*.38}" r="${hand}" fill="#e9aa98"/>
+    ${fingers}
+    <path d="M ${headX-bodyW*.25} ${hipY} C ${headX-bodyW*.42-legLen*.15} ${hipY+legLen*.24}, ${113-legLen*.20} ${hipY+legLen*.52}, ${116-legLen*.12} ${hipY+legLen*.72}" fill="none" stroke="#d99584" stroke-width="${limbW+1}" stroke-linecap="round"/>
+    <ellipse cx="${116-legLen*.12}" cy="${hipY+legLen*.72}" rx="${foot*1.35}" ry="${foot}" fill="#d99584" transform="rotate(-22 ${116-legLen*.12} ${hipY+legLen*.72})"/>
+    <path d="M ${headX+bodyW*.25} ${hipY+2} C ${headX+bodyW*.52+legLen*.10} ${hipY+legLen*.18}, ${171+legLen*.20} ${hipY+legLen*.34}, ${169+legLen*.45} ${hipY+legLen*.48}" fill="none" stroke="#e9aa98" stroke-width="${limbW+1}" stroke-linecap="round"/>
+    <ellipse cx="${169+legLen*.45}" cy="${hipY+legLen*.48}" rx="${foot*1.35}" ry="${foot}" fill="#e9aa98" transform="rotate(20 ${169+legLen*.45} ${hipY+legLen*.48})"/>
+    ${toes}
+    ${early?`<path d="M ${headX-headR*.62} ${headY-headR*.35} Q ${headX-10} ${headY-headR*1.08} ${headX+headR*.55} ${headY-headR*.58}" fill="none" stroke="rgba(255,224,214,.36)" stroke-width="2"/>`:''}
+   </g>
+   <g class="baby-week-caption"><text x="22" y="232" fill="rgba(255,246,242,.9)" font-size="11" font-weight="700">semana ${w} · ${label}</text><text x="22" y="247" fill="rgba(255,238,231,.68)" font-size="9">visual artístico, não diagnóstico</text></g>
+  </svg>`;
+}
 function renderBabyTodayCard(){
  const info=babyStageInfo();
- const guideCm=Number(String(info.cm).replace(',','.'))||1;
  const measuredIsRecent=calendarDay(today)-calendarDay(parseYmd(LATEST_BABY_MEASUREMENT.date))<=14;
- const visualCm=measuredIsRecent?LATEST_BABY_MEASUREMENT.cm:guideCm;
- // A imagem-base é ilustrativa, mas agora muda de escala de forma perceptível conforme o crescimento semanal.
- // Entre 6 e 9 semanas, por exemplo, a diferença visual deixa de ser quase nula.
- const visualScale=clamp(.58+Math.sqrt(Math.max(.2,visualCm)/3.1)*.46,.68,1.12);
  const measuredText=`${LATEST_BABY_MEASUREMENT.cm.toFixed(1).replace('.',',')} cm · medido em ${fmtDate(LATEST_BABY_MEASUREMENT.date)}`;
- return `<div class="baby-today humanized-baby-card"><div class="baby-human-stage" style="--baby-scale:${visualScale}" aria-label="Visual ilustrativo humanizado do bebê na semana atual"><div class="baby-human-image"></div><div class="baby-human-overlay"></div><span class="baby-visual-label">visual ilustrativo · semana ${weeks}</span><div class="baby-size-chip">${measuredText}</div></div><div class="baby-today-copy"><span class="baby-kicker">Como ${PROFILE.babyNames} está hoje</span><h3>${weeks} semanas${days?` e ${days} dias`:''}</h3><p><b>Última medida registrada: ${LATEST_BABY_MEASUREMENT.cm.toFixed(1).replace('.',',')} cm</b>, em ${fmtDate(LATEST_BABY_MEASUREMENT.date)}. A referência da semana é aproximadamente ${info.cm} cm, por volta do tamanho de <b>${info.compare}</b>.</p><div class="baby-evolution">${info.detail}<br><small>O tamanho medido pela médica prevalece sobre a estimativa genérica. O visual muda semanalmente, mas continua sendo uma ilustração, não uma reprodução do ultrassom.</small></div></div></div>`
+ return `<div class="baby-today humanized-baby-card"><div class="baby-human-stage" aria-label="Visual ilustrativo humanizado do bebê na semana atual"><div class="baby-week-visual">${babyWeekVisual(weeks)}</div><div class="baby-human-overlay"></div><span class="baby-visual-label">evolução visual · semana ${weeks}</span><span class="baby-week-change">muda a cada semana</span><div class="baby-size-chip">${measuredText}</div></div><div class="baby-today-copy"><span class="baby-kicker">Como ${PROFILE.babyNames} está hoje</span><h3>${weeks} semanas${days?` e ${days} dias`:''}</h3><p><b>Última medida registrada: ${LATEST_BABY_MEASUREMENT.cm.toFixed(1).replace('.',',')} cm</b>, em ${fmtDate(LATEST_BABY_MEASUREMENT.date)}. ${measuredIsRecent?'Essa medida real está sendo priorizada no card. ':''}A referência da semana é aproximadamente ${info.cm} cm, por volta do tamanho de <b>${info.compare}</b>.</p><div class="baby-evolution">${info.detail}<br><small>Agora o desenho muda de proporções e aparência a cada semana gestacional. Ele representa a fase de desenvolvimento de forma artística; não tenta reproduzir o ultrassom nem serve para avaliação médica.</small></div></div></div>`
 }
 
 function renderDashboard(){const st=stats();$('#view-dashboard').innerHTML=`\n ${!canEdit()?'<div class="notice readonly-note"><b>Modo visitante.</b> Você pode navegar e visualizar os dados, mas não pode cadastrar ou alterar informações.</div>':''}
