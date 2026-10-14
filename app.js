@@ -458,16 +458,27 @@ function seasonPriorityInfo(i){
  return{...season,priority,adjustment:0,advice}
 }
 function targetFor(i){return Math.max(0,baseTargetFor(i))}
+// Estações aproximadas para Viçosa no hemisfério sul.
+function seasonNameForDate(date){
+ const md=(date.getMonth()+1)*100+date.getDate();
+ return md>=1221||md<320?'Verão':md<621?'Outono':md<922?'Inverno':'Primavera';
+}
+function seasonsForPhase(phase){
+ const {start,end}=phaseUseWindow(phase),names=[];
+ const day=new Date(start.getFullYear(),start.getMonth(),start.getDate(),12);
+ const last=new Date(end.getFullYear(),end.getMonth(),end.getDate(),12);
+ while(day<=last){const name=seasonNameForDate(day);if(!names.includes(name))names.push(name);day.setDate(day.getDate()+1)}
+ return names;
+}
 function renderSeasonPlanner(){
  const phases=['Nascimento','0–3m','3–6m','6–9m','9–12m','12–18m','18–24m'];
- const allSelected=!currentPhases.length;
- return `<div class="phase-shortcuts">
-  <div class="phase-shortcuts-head"><b>Ver enxoval por idade</b><span>Selecione a fase para filtrar automaticamente os itens.</span></div>
-  <div class="season-plan" role="group" aria-label="Atalhos por fase do bebê">
-   <button type="button" class="season-card all ${allSelected?'is-active':''}" aria-pressed="${allSelected}" onclick="selectSeasonPhase('Todas')"><b>Todas</b><span>0–24 meses</span></button>
-   ${phases.map(p=>{const s=phaseSeasonInfo(p),active=currentPhases.length===1&&currentPhases[0]===p;return `<button type="button" class="season-card ${s.primary} ${active?'is-active':''}" aria-pressed="${active}" title="${s.label}" onclick="selectSeasonPhase('${p}')"><b>${p}</b><span>${s.windowText}</span></button>`}).join('')}
-  </div>
- </div>`;
+ return `<section class="card panel home-phase-panel" aria-label="Enxoval por faixa etária">
+  <div class="section-head"><div><h2>Enxoval por idade e estação</h2><p>Escolha a fase do Ian para abrir o enxoval já filtrado. Estações aproximadas em Viçosa/MG.</p></div><button type="button" class="btn soft" onclick="openPhaseInEnxoval('Todas')">Ver inventário completo →</button></div>
+  <div class="home-phase-strip">${phases.map(p=>{const info=phaseSeasonInfo(p),seasons=seasonsForPhase(p).join(' · ');return `<button type="button" class="home-phase-card ${info.primary}" onclick="openPhaseInEnxoval('${p}')" aria-label="${p}, ${info.windowText}, ${seasons}: abrir itens do enxoval">
+   <span class="home-phase-title"><b>${p}</b><span aria-hidden="true">↗</span></span>
+   <small>${info.windowText}</small><span class="home-phase-seasons">${seasons}</span>
+  </button>`}).join('')}</div>
+ </section>`;
 }
 function authHeaders(){if(!syncPin)return {};return canEdit()?{'x-ninho-pin':syncPin}:{'x-ninho-viewer-pin':syncPin}}
 async function apiState(method='GET',body){
@@ -546,6 +557,7 @@ function renderDashboard(){const st=stats();$('#view-dashboard').innerHTML=`\n $
   <div class="card preg-card"><div class="baby-decor baby-decor-1">${icons.baby}</div><div class="baby-decor baby-decor-2">${icons.bottle}</div><div class="spark s1">✦</div><div class="spark s2">·</div><div class="preg-content"><div class="week-pill">${icons.heart} ${phaseLabel()}</div><div class="week-number">${weeks}<small> semanas${days?` + ${days}d`:''}</small></div><p><b>${PROFILE.babyNames}</b> está a caminho. ${PROFILE.mother} está com ${weeks} semanas${days?` e ${days} dias`:''}; o enxoval segue neutro, por fases e sem excesso.</p><div class="progress"><span style="width:${gestPct}%"></span></div><div class="progress-label"><span>começo</span><span>${gestPct}% da gestação</span><span>parto · abr/2027</span></div></div></div>
   <div class="card quick baby-quick"><div>${renderBabyTodayCard()}<div class="quick-divider"></div><h3>Próximos passos</h3><div class="quick-list"><div class="quick-item"><i class="quick-dot"></i><div><b>Pré-natal em dia</b><span>Registre consultas, exames e anexos na guia Médico.</span></div></div><div class="quick-item"><i class="quick-dot"></i><div><b>Vacinas separadas</b><span>Agora há uma guia da mãe e outra do bebê.</span></div></div><div class="quick-item"><i class="quick-dot"></i><div><b>Enxoval por estação</b><span>As roupas consideram a época do ano em Viçosa e a fase prevista do bebê.</span></div></div></div></div><button class="btn soft" onclick="go('medico')">Abrir acompanhamento</button></div>
  </div>
+ ${renderSeasonPlanner()}
  <div class="metrics">${metric('bag',`${st.pct}%`,'inventário coberto')}${metric('gift',st.gifts,'itens recebidos')}${metric('wallet',money(st.spent),'já gasto')}${metric('calendar',daysToDue,'dias até o parto')}</div>
  <div class="grid-2">
   <div class="card panel"><div class="section-head"><div><h2>Comprar sem excesso</h2><p>O Ninho segura itens que podem esperar.</p></div><button class="btn" onclick="go('enxoval')">Abrir enxoval</button></div>${renderSmartList()}</div>
@@ -590,7 +602,6 @@ function renderEnxoval(){
  const rows=state.items.filter(i=>(currentCat==='Todos'||i.category===currentCat)&&matchesPhase(i)&&matchesSize(i)&&(currentWhen==='Todos'||i.when===currentWhen)&&matchesCompletion(i));
  $('#view-enxoval').innerHTML=`
  <div class="card panel"><div class="section-head"><div><h2>Inventário até 2 anos</h2><p>Quantidades são sugestões práticas e conservadoras — não uma regra oficial.</p></div><button class="btn primary" onclick="addItemModal()">${icons.plus} Adicionar item</button></div>
-${renderSeasonPlanner()}
  <div class="filter-grid four">
    <div class="field"><label>Categoria</label><select onchange="setCat(this.value)">${cats.map(c=>`<option value="${c}" ${c===currentCat?'selected':''}>${c}</option>`).join('')}</select></div>
    ${renderMultiDropdown('phase','Fase','uma ou mais',phases,currentPhases)}
@@ -600,18 +611,17 @@ ${renderSeasonPlanner()}
    <div class="field"><label>Alimentação planejada</label><select onchange="setFeedingMode(this.value)">${['Ainda não definido','Aleitamento materno','Misto','Fórmula'].map(c=>`<option value="${c}" ${c===state.feedingMode?'selected':''}>${c}</option>`).join('')}</select></div>
  </div>
  <div id="enxoval-results" class="enxoval-results-head" role="status" aria-live="polite">
-  <div><b>${currentPhases.length===1?`Itens da fase ${currentPhases[0]}`:currentPhases.length?'Itens das fases selecionadas':'Todos os itens do enxoval'}</b><span>Confira o que já tem e o que ainda falta.</span></div>
+  <div><b>${currentPhases.length===1?`Itens da fase ${currentPhases[0]}`:currentPhases.length?'Itens das fases selecionadas':'Todos os itens do enxoval'}</b><span>${currentPhases.length===1&&PHASE_WINDOWS[currentPhases[0]]?`Estações em Viçosa: ${seasonsForPhase(currentPhases[0]).join(' · ')} · Confira o que já tem e o que ainda falta.`:'Confira o que já tem e o que ainda falta.'}</span></div>
   <span class="enxoval-results-count">${rows.length} ${rows.length===1?'item':'itens'}</span>
  </div>
  <div class="table-wrap"><table class="table"><thead><tr><th>Item</th><th>Fase</th><th>Tamanho</th><th>Alvo</th><th>Tem</th><th>Status</th><th>Quando</th><th>Nota</th></tr></thead><tbody>${rows.map(itemRow).join('')}</tbody></table></div></div>`
 }
 function itemRow(i){const s=seasonPriorityInfo(i);const seasonLine=i.category==='Roupas'?`<div class="season-mini-block"><span class="season-pill ${s.primary}">${s.priority}</span><small>Uso previsto: ${s.windowText} · ${s.label}.</small><small>${s.advice}</small>${s.adjustment?`<small>Alvo ajustado pelo clima: ${s.adjustment>0?'+':''}${s.adjustment}.</small>`:''}</div>`:'';return `<tr><td><b>${i.name}</b><br><span class="muted-mini">${i.category}${i.essential?' · essencial':''}</span></td><td><span class="tag">${i.phase}</span></td><td>${i.size}</td><td><b>${targetFor(i)}</b></td><td><div class="qty"><button onclick="q('${i.id}',-1)">−</button><b>${i.have}</b><button onclick="q('${i.id}',1)">+</button></div></td><td><select class="status-select" onchange="statusChange('${i.id}',this.value)">${['Planejado','Pesquisar','Comprado','Ganhou','Esperar','Evitar'].map(st=>`<option ${i.status===st?'selected':''}>${st}</option>`).join('')}</select></td><td>${i.when}</td><td class="note-cell">${i.note}${seasonLine}</td></tr>`}
-window.selectSeasonPhase=phase=>{
+window.openPhaseInEnxoval=phase=>{
  currentPhases=phase==='Todas'?[]:[phase];
  currentCat='Todos';currentSizes=[];currentWhen='Todos';currentCompletion='Todos';openMultiFilter='';
  renderEnxoval();
- const results=document.getElementById('enxoval-results');
- if(results)requestAnimationFrame(()=>results.scrollIntoView({behavior:'smooth',block:'start'}));
+ go('enxoval');
 };
 window.setCat=c=>{currentCat=c;renderEnxoval()};
 window.rememberMultiOpen=(kind,isOpen)=>{if(isOpen)openMultiFilter=kind;else if(openMultiFilter===kind)openMultiFilter=''};
@@ -752,5 +762,5 @@ async function restoreLogin(){
 renderNav();
 $('#pageTitle').textContent=greetingByHour();
 restoreLogin();
-if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
+if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=26').catch(()=>{});
 document.addEventListener('click',()=>{openMultiFilter='';document.querySelectorAll('.multi-dropdown[open]').forEach(d=>d.removeAttribute('open'))});
