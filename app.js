@@ -458,7 +458,17 @@ function seasonPriorityInfo(i){
  return{...season,priority,adjustment:0,advice}
 }
 function targetFor(i){return Math.max(0,baseTargetFor(i))}
-function renderSeasonPlanner(){return `<div class="season-plan">${['Nascimento','0–3m','3–6m','6–9m','9–12m','12–18m','18–24m'].map(p=>{const s=phaseSeasonInfo(p);return `<div class="season-card ${s.primary}"><b>${p}</b><span>${s.windowText}</span><small>${s.label}</small></div>`}).join('')}</div>`}
+function renderSeasonPlanner(){
+ const phases=['Nascimento','0–3m','3–6m','6–9m','9–12m','12–18m','18–24m'];
+ const allSelected=!currentPhases.length;
+ return `<div class="phase-shortcuts">
+  <div class="phase-shortcuts-head"><b>Ver enxoval por idade</b><span>Selecione a fase para filtrar automaticamente os itens.</span></div>
+  <div class="season-plan" role="group" aria-label="Atalhos por fase do bebê">
+   <button type="button" class="season-card all ${allSelected?'is-active':''}" aria-pressed="${allSelected}" onclick="selectSeasonPhase('Todas')"><b>Todas</b><span>0–24 meses</span></button>
+   ${phases.map(p=>{const s=phaseSeasonInfo(p),active=currentPhases.length===1&&currentPhases[0]===p;return `<button type="button" class="season-card ${s.primary} ${active?'is-active':''}" aria-pressed="${active}" title="${s.label}" onclick="selectSeasonPhase('${p}')"><b>${p}</b><span>${s.windowText}</span></button>`}).join('')}
+  </div>
+ </div>`;
+}
 function authHeaders(){if(!syncPin)return {};return canEdit()?{'x-ninho-pin':syncPin}:{'x-ninho-viewer-pin':syncPin}}
 async function apiState(method='GET',body){
  const opts={method,headers:{...authHeaders()}};
@@ -589,9 +599,20 @@ ${renderSeasonPlanner()}
    <div class="field"><label>Itens</label><select onchange="setCompletionFilter(this.value)">${completionOptions.map(c=>`<option value="${c}" ${c===currentCompletion?'selected':''}>${c}</option>`).join('')}</select></div>
    <div class="field"><label>Alimentação planejada</label><select onchange="setFeedingMode(this.value)">${['Ainda não definido','Aleitamento materno','Misto','Fórmula'].map(c=>`<option value="${c}" ${c===state.feedingMode?'selected':''}>${c}</option>`).join('')}</select></div>
  </div>
+ <div id="enxoval-results" class="enxoval-results-head" role="status" aria-live="polite">
+  <div><b>${currentPhases.length===1?`Itens da fase ${currentPhases[0]}`:currentPhases.length?'Itens das fases selecionadas':'Todos os itens do enxoval'}</b><span>Confira o que já tem e o que ainda falta.</span></div>
+  <span class="enxoval-results-count">${rows.length} ${rows.length===1?'item':'itens'}</span>
+ </div>
  <div class="table-wrap"><table class="table"><thead><tr><th>Item</th><th>Fase</th><th>Tamanho</th><th>Alvo</th><th>Tem</th><th>Status</th><th>Quando</th><th>Nota</th></tr></thead><tbody>${rows.map(itemRow).join('')}</tbody></table></div></div>`
 }
 function itemRow(i){const s=seasonPriorityInfo(i);const seasonLine=i.category==='Roupas'?`<div class="season-mini-block"><span class="season-pill ${s.primary}">${s.priority}</span><small>Uso previsto: ${s.windowText} · ${s.label}.</small><small>${s.advice}</small>${s.adjustment?`<small>Alvo ajustado pelo clima: ${s.adjustment>0?'+':''}${s.adjustment}.</small>`:''}</div>`:'';return `<tr><td><b>${i.name}</b><br><span class="muted-mini">${i.category}${i.essential?' · essencial':''}</span></td><td><span class="tag">${i.phase}</span></td><td>${i.size}</td><td><b>${targetFor(i)}</b></td><td><div class="qty"><button onclick="q('${i.id}',-1)">−</button><b>${i.have}</b><button onclick="q('${i.id}',1)">+</button></div></td><td><select class="status-select" onchange="statusChange('${i.id}',this.value)">${['Planejado','Pesquisar','Comprado','Ganhou','Esperar','Evitar'].map(st=>`<option ${i.status===st?'selected':''}>${st}</option>`).join('')}</select></td><td>${i.when}</td><td class="note-cell">${i.note}${seasonLine}</td></tr>`}
+window.selectSeasonPhase=phase=>{
+ currentPhases=phase==='Todas'?[]:[phase];
+ currentCat='Todos';currentSizes=[];currentWhen='Todos';currentCompletion='Todos';openMultiFilter='';
+ renderEnxoval();
+ const results=document.getElementById('enxoval-results');
+ if(results)requestAnimationFrame(()=>results.scrollIntoView({behavior:'smooth',block:'start'}));
+};
 window.setCat=c=>{currentCat=c;renderEnxoval()};
 window.rememberMultiOpen=(kind,isOpen)=>{if(isOpen)openMultiFilter=kind;else if(openMultiFilter===kind)openMultiFilter=''};
 window.togglePhaseFilter=(value,checked)=>{openMultiFilter='phase';currentPhases=checked?[...new Set([...currentPhases,value])]:currentPhases.filter(x=>x!==value);renderEnxoval()};
