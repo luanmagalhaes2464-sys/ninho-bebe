@@ -1,5 +1,5 @@
-const CACHE = 'ninho-v28-enxoval-2026';
-const ASSETS = ['./', './index.html', './styles.css?v=28', './enxoval-complementos.js?v=28', './app.js?v=28', './price-radar.js?v=28', './manifest.webmanifest', './mascote-ninho-v2.webp'];
+const CACHE = 'ninho-v29-sidebar-sem-barra';
+const ASSETS = ['./', './index.html', './styles.css?v=29', './enxoval-complementos.js?v=28', './app.js?v=28', './price-radar.js?v=28', './manifest.webmanifest', './mascote-ninho-v2.webp'];
 
 self.addEventListener('install', event => {
   self.skipWaiting();
