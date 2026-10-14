@@ -136,3 +136,15 @@
 .enxoval-references summary{cursor:pointer;font-weight:800;color:#375d46}
 .enxoval-references p{margin:9px 0;line-height:1.55}
 .enxoval-references a{display:block;margin:8px 0;color:#39714d;overflow-wrap:anywhere}
+
+/* Menu lateral: oculta apenas a barra visual; mantém rolagem de mouse, touch e teclado. */
+.sidebar .nav{
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+  overscroll-behavior-y:contain;
+}
+.sidebar .nav::-webkit-scrollbar{
+  display:none;
+  width:0;
+  height:0;
+}
