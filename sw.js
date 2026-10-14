@@ -1,5 +1,5 @@
-const CACHE = 'ninho-v26-inicio-fases-estacoes';
-const ASSETS = ['./', './index.html', './styles.css?v=26', './app.js?v=26', './price-radar.js?v=26', './manifest.webmanifest', './mascote-ninho-v2.webp'];
+const CACHE = 'ninho-v28-enxoval-2026';
+const ASSETS = ['./', './index.html', './styles.css?v=28', './enxoval-complementos.js?v=28', './app.js?v=28', './price-radar.js?v=28', './manifest.webmanifest', './mascote-ninho-v2.webp'];
 
 self.addEventListener('install', event => {
   self.skipWaiting();
