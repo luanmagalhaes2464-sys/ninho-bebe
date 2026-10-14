@@ -220,6 +220,16 @@ const defaultItems=[
  I('seg9','Trava de janelas / telas seguras','Segurança','Casa',1,'Antes de andar',true,'Avaliar todas as janelas acessíveis.','9–24m','Esperar'),
  I('seg10','Barreira para áreas de risco','Segurança','Conforme casa',1,'Antes de engatinhar',false,'Usar para cozinha, lavanderia ou outras áreas quando necessário.','6–18m','Esperar')
 ];
+/* Complementos revisados por fase; não substituem o histórico de compras da família. */
+defaultItems.push(...(window.NINHO_EXTRA_ITEMS||[]).map(fields=>I(...fields)));
+const REVISED_TARGETS={rn1:4,rn2:4,rn3:4,rn4:4,p1r:5,p2r:6,p3r:6,p4r:5,m1r:5,h7:3,s4:2};
+defaultItems.forEach(item=>{
+ if(Object.prototype.hasOwnProperty.call(REVISED_TARGETS,item.id))item.recommended=REVISED_TARGETS[item.id];
+ if(item.id==='s4')item.note='Opcional: saco de dormir sem peso e do tamanho adequado pode substituir coberta solta. Comprar somente se necessário.';
+ if(item.id==='h7')item.note='Três toalhas ajudam no revezamento; capuz é opcional. Quantidade compatível com o guia Bepantol.';
+ if(/^rn[1-4]$/.test(item.id))item.note='Quantidade inicial ajustada para RN, sem excesso. Considerar o outono em Viçosa e adaptar após conhecer o tamanho do bebê.';
+});
+
 
 const motherVaccines=[
  {id:'mv1',when:'Ao saber da gravidez',name:'Hepatite B',dose:'Completar esquema de 3 doses conforme histórico',note:'Revisar o cartão vacinal com a equipe.'},
@@ -565,7 +575,7 @@ function renderDashboard(){const st=stats();$('#view-dashboard').innerHTML=`\n $
  </div>`}
 function renderSmartList(){const missing=state.items.filter(i=>i.essential&&targetFor(i)>i.have&&i.status!=='Evitar'&&['Nascimento','0–3m'].includes(i.phase)).slice(0,5);return missing.length?`<div class="timeline">${missing.map(i=>`<div class="timeline-item"><div class="timebadge">${i.size.split('/')[0]}</div><div><b>${i.name}</b><span>Faltam ${targetFor(i)-i.have} · ${i.when}</span></div><span class="tag ${i.status==='Pesquisar'?'warn':'green'}">${i.status}</span></div>`).join('')}</div>`:'<div class="empty">Essenciais iniciais cobertos 🎉</div>'}
 
-let currentCat='Todos',currentPhases=[],currentSizes=[],currentWhen='Todos',currentCompletion='Todos';
+let currentCat='Todos',currentPhases=[],currentSizes=[],currentWhen='Todos',currentCompletion='Todos',currentPriority='Todos';
 let openMultiFilter='';
 function selectedFilterLabel(values,allLabel){if(!values.length)return allLabel;if(values.length<=2)return values.join(' + ');return `${values.length} selecionados`}
 function renderMultiDropdown(kind,label,hint,options,selected){
@@ -589,6 +599,20 @@ function extractSizeTags(item){
   ['0–3m','3–6m','6–9m','9–12m','12–18m','18–24m','Único'].forEach(tag=>{ if(text.includes(tag)) out.push(tag); });
   return [...new Set(out)];
 }
+function inventoryPhaseRange(raw){
+ const phase=String(raw||'').replaceAll('-','–');
+ if(phase==='Nascimento')return [0,0.25];
+ const m=/^(\d+)–(\d+)m$/.exec(phase);
+ return m?[Number(m[1]),Number(m[2])]:null;
+}
+function phaseMatchesInventoryItem(itemPhase,selectedPhase){
+ if(itemPhase===selectedPhase)return true;
+ const i=inventoryPhaseRange(itemPhase),s=inventoryPhaseRange(selectedPhase);
+ if(!i||!s)return false;
+ if(selectedPhase==='Nascimento')return i[0]===0;
+ if(itemPhase==='Nascimento')return s[0]===0;
+ return i[0]<s[1]&&i[1]>s[0];
+}
 function renderEnxoval(){
  const cats=['Todos',...new Set(state.items.map(i=>i.category))];
  const phases=[...new Set(state.items.map(i=>i.phase).filter(Boolean))];
@@ -597,16 +621,19 @@ function renderEnxoval(){
  const completionOptions=['Todos','Pendentes','Concluídos','Evitar'];
  const isCompleted=i=>targetFor(i)>0&&Number(i.have||0)>=targetFor(i);
  const matchesCompletion=i=>currentCompletion==='Todos'||(currentCompletion==='Pendentes'&&!isCompleted(i)&&i.status!=='Evitar'&&targetFor(i)>0)||(currentCompletion==='Concluídos'&&isCompleted(i))||(currentCompletion==='Evitar'&&(i.status==='Evitar'||targetFor(i)===0));
- const matchesPhase=i=>!currentPhases.length||currentPhases.includes(i.phase);
+ const matchesPhase=i=>!currentPhases.length||currentPhases.some(p=>phaseMatchesInventoryItem(i.phase,p));
+ const matchesPriority=i=>currentPriority==='Todos'||currentPriority==='Essenciais'&&i.essential||currentPriority==='Opcionais'&&!i.essential;
  const matchesSize=i=>!currentSizes.length||extractSizeTags(i).some(tag=>currentSizes.includes(tag));
- const rows=state.items.filter(i=>(currentCat==='Todos'||i.category===currentCat)&&matchesPhase(i)&&matchesSize(i)&&(currentWhen==='Todos'||i.when===currentWhen)&&matchesCompletion(i));
+ const rows=state.items.filter(i=>(currentCat==='Todos'||i.category===currentCat)&&matchesPhase(i)&&matchesSize(i)&&matchesPriority(i)&&(currentWhen==='Todos'||i.when===currentWhen)&&matchesCompletion(i));
  $('#view-enxoval').innerHTML=`
  <div class="card panel"><div class="section-head"><div><h2>Inventário até 2 anos</h2><p>Quantidades são sugestões práticas e conservadoras — não uma regra oficial.</p></div><button class="btn primary" onclick="addItemModal()">${icons.plus} Adicionar item</button></div>
+ <div class="enxoval-guide"><b>Enxoval completo para o Ian</b><span>Use a prioridade para separar essenciais e opcionais. Documentos gratuitos e checklists são tarefas a providenciar, não compras obrigatórias.</span></div>
  <div class="filter-grid four">
    <div class="field"><label>Categoria</label><select onchange="setCat(this.value)">${cats.map(c=>`<option value="${c}" ${c===currentCat?'selected':''}>${c}</option>`).join('')}</select></div>
    ${renderMultiDropdown('phase','Fase','uma ou mais',phases,currentPhases)}
    ${renderMultiDropdown('size','Tamanho / faixa','ex.: RN + 0–3m',sizes,currentSizes)}
    <div class="field"><label>Quando</label><select onchange="setWhenFilter(this.value)">${whens.map(c=>`<option value="${c}" ${c===currentWhen?'selected':''}>${c}</option>`).join('')}</select></div>
+   <div class="field"><label>Prioridade</label><select onchange="setPriorityFilter(this.value)">${['Todos','Essenciais','Opcionais'].map(c=>`<option value="${c}" ${c===currentPriority?'selected':''}>${c}</option>`).join('')}</select></div>
    <div class="field"><label>Itens</label><select onchange="setCompletionFilter(this.value)">${completionOptions.map(c=>`<option value="${c}" ${c===currentCompletion?'selected':''}>${c}</option>`).join('')}</select></div>
    <div class="field"><label>Alimentação planejada</label><select onchange="setFeedingMode(this.value)">${['Ainda não definido','Aleitamento materno','Misto','Fórmula'].map(c=>`<option value="${c}" ${c===state.feedingMode?'selected':''}>${c}</option>`).join('')}</select></div>
  </div>
@@ -614,12 +641,12 @@ function renderEnxoval(){
   <div><b>${currentPhases.length===1?`Itens da fase ${currentPhases[0]}`:currentPhases.length?'Itens das fases selecionadas':'Todos os itens do enxoval'}</b><span>${currentPhases.length===1&&PHASE_WINDOWS[currentPhases[0]]?`Estações em Viçosa: ${seasonsForPhase(currentPhases[0]).join(' · ')} · Confira o que já tem e o que ainda falta.`:'Confira o que já tem e o que ainda falta.'}</span></div>
   <span class="enxoval-results-count">${rows.length} ${rows.length===1?'item':'itens'}</span>
  </div>
- <div class="table-wrap"><table class="table"><thead><tr><th>Item</th><th>Fase</th><th>Tamanho</th><th>Alvo</th><th>Tem</th><th>Status</th><th>Quando</th><th>Nota</th></tr></thead><tbody>${rows.map(itemRow).join('')}</tbody></table></div></div>`
+ <div class="table-wrap"><table class="table"><thead><tr><th>Item</th><th>Fase</th><th>Tamanho</th><th>Alvo</th><th>Tem / feito</th><th>Status</th><th>Quando</th><th>Nota</th></tr></thead><tbody>${rows.map(itemRow).join('')}</tbody></table></div><details class="enxoval-references"><summary>Fontes usadas e como interpretar as quantidades</summary><p>Listas de lojas e marcas são sugestões, não recomendações oficiais. Quantidades dependem das lavagens, crescimento, clima e rotina. A página específica da Safine não pôde ser lida integralmente.</p><a href="https://www.bepantol.com.br/bepantol-baby/necessidades-e-cuidados/enxoval-do-bebe-o-que-levar-para-a-maternidade" target="_blank" rel="noopener">Bepantol Baby — enxoval e maternidade</a><a href="https://www.coisasdenine.com/blogs/coisas-de-nine/lista-de-enxoval-de-bebe-simples-e-barato" target="_blank" rel="noopener">Coisas de Nine — enxoval simples</a><a href="https://safinebaby.com.br/enxoval-do-bebe-lista-completa-de-tudo-que-voce-precisa-comprar/" target="_blank" rel="noopener">Safine Baby — referência complementar</a><a href="https://www.nhs.uk/start-for-life/pregnancy/preparing-for-labour-and-birth/hospital-bag-checklist/" target="_blank" rel="noopener">NHS — bolsa de maternidade</a><a href="https://www.gov.br/saude/pt-br/assuntos/saude-de-a-a-z/s/saude-da-crianca" target="_blank" rel="noopener">Ministério da Saúde — Caderneta da Criança</a><a href="https://www.gov.br/saude/pt-br/vacinacao/calendario" target="_blank" rel="noopener">Ministério da Saúde — vacinação</a><a href="https://www.healthychildren.org/English/ages-stages/baby/sleep/Pages/a-parents-guide-to-safe-sleep.aspx" target="_blank" rel="noopener">AAP — sono seguro</a></details></div>`
 }
-function itemRow(i){const s=seasonPriorityInfo(i);const seasonLine=i.category==='Roupas'?`<div class="season-mini-block"><span class="season-pill ${s.primary}">${s.priority}</span><small>Uso previsto: ${s.windowText} · ${s.label}.</small><small>${s.advice}</small>${s.adjustment?`<small>Alvo ajustado pelo clima: ${s.adjustment>0?'+':''}${s.adjustment}.</small>`:''}</div>`:'';return `<tr><td><b>${i.name}</b><br><span class="muted-mini">${i.category}${i.essential?' · essencial':''}</span></td><td><span class="tag">${i.phase}</span></td><td>${i.size}</td><td><b>${targetFor(i)}</b></td><td><div class="qty"><button onclick="q('${i.id}',-1)">−</button><b>${i.have}</b><button onclick="q('${i.id}',1)">+</button></div></td><td><select class="status-select" onchange="statusChange('${i.id}',this.value)">${['Planejado','Pesquisar','Comprado','Ganhou','Esperar','Evitar'].map(st=>`<option ${i.status===st?'selected':''}>${st}</option>`).join('')}</select></td><td>${i.when}</td><td class="note-cell">${i.note}${seasonLine}</td></tr>`}
+function itemRow(i){const s=seasonPriorityInfo(i);const seasonLine=i.category==='Roupas'?`<div class="season-mini-block"><span class="season-pill ${s.primary}">${s.priority}</span><small>Uso previsto: ${s.windowText} · ${s.label}.</small><small>${s.advice}</small>${s.adjustment?`<small>Alvo ajustado pelo clima: ${s.adjustment>0?'+':''}${s.adjustment}.</small>`:''}</div>`:'';return `<tr><td><b>${i.name}</b><br><span class="muted-mini">${i.category}${i.essential?' · essencial':' · opcional'}</span></td><td><span class="tag">${i.phase}</span></td><td>${i.size}</td><td><b>${targetFor(i)}</b></td><td><div class="qty"><button onclick="q('${i.id}',-1)">−</button><b>${i.have}</b><button onclick="q('${i.id}',1)">+</button></div></td><td><select class="status-select" onchange="statusChange('${i.id}',this.value)">${['Planejado','Pesquisar','Comprado','Ganhou','Providenciado','Esperar','Evitar'].map(st=>`<option ${i.status===st?'selected':''}>${st}</option>`).join('')}</select></td><td>${i.when}</td><td class="note-cell">${i.note}${seasonLine}</td></tr>`}
 window.openPhaseInEnxoval=phase=>{
  currentPhases=phase==='Todas'?[]:[phase];
- currentCat='Todos';currentSizes=[];currentWhen='Todos';currentCompletion='Todos';openMultiFilter='';
+ currentCat='Todos';currentSizes=[];currentWhen='Todos';currentCompletion='Todos';currentPriority='Todos';openMultiFilter='';
  renderEnxoval();
  go('enxoval');
 };
@@ -629,7 +656,7 @@ window.togglePhaseFilter=(value,checked)=>{openMultiFilter='phase';currentPhases
 window.clearPhaseFilters=()=>{openMultiFilter='phase';currentPhases=[];renderEnxoval()};
 window.toggleSizeFilter=(value,checked)=>{openMultiFilter='size';currentSizes=checked?[...new Set([...currentSizes,value])]:currentSizes.filter(x=>x!==value);renderEnxoval()};
 window.clearSizeFilters=()=>{openMultiFilter='size';currentSizes=[];renderEnxoval()};
-window.setWhenFilter=c=>{currentWhen=c;renderEnxoval()};window.setCompletionFilter=c=>{currentCompletion=c;renderEnxoval()};window.setFeedingMode=c=>{state.feedingMode=c;save();};window.q=(id,d)=>{const i=state.items.find(x=>x.id===id);i.have=Math.max(0,(i.have||0)+d);if(i.have>0&&i.status==='Planejado')i.status='Ganhou';save()};window.statusChange=(id,s)=>{state.items.find(x=>x.id===id).status=s;save()};
+window.setPriorityFilter=c=>{currentPriority=c;renderEnxoval()};window.setWhenFilter=c=>{currentWhen=c;renderEnxoval()};window.setCompletionFilter=c=>{currentCompletion=c;renderEnxoval()};window.setFeedingMode=c=>{state.feedingMode=c;save();};window.q=(id,d)=>{const i=state.items.find(x=>x.id===id);i.have=Math.max(0,(i.have||0)+d);if(i.have>0&&i.status==='Planejado')i.status=i.category==='Documentos e vacinas'||i.size==='Checklist'?'Providenciado':'Ganhou';save()};window.statusChange=(id,s)=>{state.items.find(x=>x.id===id).status=s;save()};
 window.addItemModal=()=>openModal(`<h3>Novo item</h3><div class="form-grid"><div class="field"><label>Nome</label><input id="niName"></div><div class="field"><label>Categoria</label><input id="niCat" placeholder="Ex.: Roupas"></div><div class="field"><label>Fase</label><input id="niPhase" placeholder="Ex.: 12–18m"></div><div class="field"><label>Tamanho</label><input id="niSize"></div><div class="field"><label>Quantidade-alvo</label><input id="niQty" type="number" min="0" value="1"></div><div class="field"><label>Quando comprar</label><input id="niWhen"></div></div><div class="field" style="margin-top:12px"><label>Observação</label><textarea id="niNote"></textarea></div><div class="modal-foot"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveNewItem()">Adicionar</button></div>`);
 window.saveNewItem=()=>{if(!$('#niName').value.trim())return;state.items.push(I('u'+Date.now(),$('#niName').value.trim(),$('#niCat').value||'Outros',$('#niSize').value||'Único',+$('#niQty').value||0,$('#niWhen').value||'Quando necessário',false,$('#niNote').value||'', $('#niPhase').value||'Nascimento'));closeModal();save()};
 
@@ -762,5 +789,5 @@ async function restoreLogin(){
 renderNav();
 $('#pageTitle').textContent=greetingByHour();
 restoreLogin();
-if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=26').catch(()=>{});
+if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=28').catch(()=>{});
 document.addEventListener('click',()=>{openMultiFilter='';document.querySelectorAll('.multi-dropdown[open]').forEach(d=>d.removeAttribute('open'))});
