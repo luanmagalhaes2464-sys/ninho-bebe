@@ -127,3 +127,12 @@
 .enxoval-results-head span:not(.enxoval-results-count){display:block;font-size:10px;color:var(--muted);margin-top:3px}
 .enxoval-results-count{flex:none;padding:7px 10px;background:#eef5ef;border-radius:999px;font-size:10px;font-weight:800;color:var(--green-4)}
 @media(max-width:760px){.home-phase-card{flex:0 0 152px;min-width:152px;min-height:93px}.enxoval-results-head{align-items:flex-start}}
+
+/* Enxoval: 198 itens por fase com prioridades e referências. */
+.enxoval-guide{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px;margin:0 0 14px;padding:10px 12px;border:1px solid #dceadd;border-radius:13px;background:#f6faf7}
+.enxoval-guide b{color:#345d45;font-size:11px}
+.enxoval-guide span{color:#69796e;font-size:10px;line-height:1.5}
+.enxoval-references{margin-top:16px;border-top:1px solid #e8eee9;padding-top:12px;font-size:11px;color:#596b61}
+.enxoval-references summary{cursor:pointer;font-weight:800;color:#375d46}
+.enxoval-references p{margin:9px 0;line-height:1.55}
+.enxoval-references a{display:block;margin:8px 0;color:#39714d;overflow-wrap:anywhere}
