@@ -440,7 +440,7 @@ window.loginNinho=async event=>{
 };
 function baseTargetFor(i){return FEEDING_TARGETS[i.id]?.[state.feedingMode] ?? Number(i.recommended||0)}
 const PHASE_WINDOWS={'Nascimento':[0,1],'0–3m':[0,3],'3–6m':[3,6],'6–9m':[6,9],'9–12m':[9,12],'12–18m':[12,18],'18–24m':[18,24]};
-function phaseUseWindow(phase){const [a,b]=PHASE_WINDOWS[phase]||[0,1];return{start:addMonths(dueDate,a),end:addDays(addMonths(dueDate,b),-1)}}
+function phaseUseWindow(phase){const [a,b]=PHASE_WINDOWS[phase]||inventoryPhaseRange(phase)||[0,1];return{start:addMonths(dueDate,a),end:addDays(addMonths(dueDate,b),-1)}}
 function monthClimate(m){if([4,5,6,7].includes(m))return'frio';if([10,11,0,1,2].includes(m))return'quente';return'ameno'}
 function phaseSeasonInfo(phase){
  const {start,end}=phaseUseWindow(phase);const months=[];const c=new Date(start.getFullYear(),start.getMonth(),1,12);const last=new Date(end.getFullYear(),end.getMonth(),1,12);
@@ -506,7 +506,7 @@ function queueCloudSave(delay=500){
 }
 function save(){if(!canEdit()){toast('Modo visitante: somente visualização');renderAll();return}localStorage.setItem(STORE_KEY,JSON.stringify(state));renderAll();queueCloudSave();}
 function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
-function stats(){const relevant=state.items.filter(i=>targetFor(i)>0);const total=relevant.reduce((s,i)=>s+targetFor(i),0);const have=relevant.reduce((s,i)=>s+Math.min(i.have,targetFor(i)),0);const spent=state.items.reduce((s,i)=>s+(i.status==='Comprado'?Number(i.price||0)*Number(i.have||0):0),0);const gifts=state.items.reduce((s,i)=>s+(i.status==='Ganhou'?i.have:0),0);return{total,have,pct:total?Math.round(have/total*100):0,spent,gifts};}
+function stats(){const relevant=state.items.filter(i=>i.essential&&targetFor(i)>0);const total=relevant.reduce((s,i)=>s+targetFor(i),0);const have=relevant.reduce((s,i)=>s+Math.min(i.have,targetFor(i)),0);const spent=state.items.reduce((s,i)=>s+(i.status==='Comprado'?Number(i.price||0)*Number(i.have||0):0),0);const gifts=state.items.reduce((s,i)=>s+(i.status==='Ganhou'?i.have:0),0);return{total,have,pct:total?Math.round(have/total*100):0,spent,gifts};}
 function phaseLabel(){return weeks<14?'1º trimestre':weeks<28?'2º trimestre':'3º trimestre'}
 function metric(ic,val,label){return `<div class="card metric"><div class="metric-top"><div class="metric-icon">${icons[ic]}</div></div><strong>${val}</strong><span>${label}</span></div>`}
 
@@ -568,7 +568,7 @@ function renderDashboard(){const st=stats();$('#view-dashboard').innerHTML=`\n $
   <div class="card quick baby-quick"><div>${renderBabyTodayCard()}<div class="quick-divider"></div><h3>Próximos passos</h3><div class="quick-list"><div class="quick-item"><i class="quick-dot"></i><div><b>Pré-natal em dia</b><span>Registre consultas, exames e anexos na guia Médico.</span></div></div><div class="quick-item"><i class="quick-dot"></i><div><b>Vacinas separadas</b><span>Agora há uma guia da mãe e outra do bebê.</span></div></div><div class="quick-item"><i class="quick-dot"></i><div><b>Enxoval por estação</b><span>As roupas consideram a época do ano em Viçosa e a fase prevista do bebê.</span></div></div></div></div><button class="btn soft" onclick="go('medico')">Abrir acompanhamento</button></div>
  </div>
  ${renderSeasonPlanner()}
- <div class="metrics">${metric('bag',`${st.pct}%`,'inventário coberto')}${metric('gift',st.gifts,'itens recebidos')}${metric('wallet',money(st.spent),'já gasto')}${metric('calendar',daysToDue,'dias até o parto')}</div>
+ <div class="metrics">${metric('bag',`${st.pct}%`,'essenciais atendidos')}${metric('gift',st.gifts,'itens recebidos')}${metric('wallet',money(st.spent),'já gasto')}${metric('calendar',daysToDue,'dias até o parto')}</div>
  <div class="grid-2">
   <div class="card panel"><div class="section-head"><div><h2>Comprar sem excesso</h2><p>O Ninho segura itens que podem esperar.</p></div><button class="btn" onclick="go('enxoval')">Abrir enxoval</button></div>${renderSmartList()}</div>
   <div class="card panel"><div class="section-head"><div><h2>Saúde em sequência</h2><p>O que vem primeiro.</p></div></div><div class="timeline"><div class="timeline-item"><div class="timebadge">${weeks}s</div><div><b>Gestação hoje</b><span>Exatamente ${weeks} semanas${days?` e ${days} dias`:''} pelo cálculo da transferência D5.</span></div><span class="tag green">agora</span></div><div class="timeline-item"><div class="timebadge">20+</div><div><b>dTpa</b><span>1 dose em cada gestação.</span></div><span class="tag">mãe</span></div><div class="timeline-item"><div class="timebadge">28+</div><div><b>VSR</b><span>1 dose em cada gestação.</span></div><span class="tag">mãe</span></div><div class="timeline-item"><div class="timebadge">RN</div><div><b>BCG + hepatite B</b><span>Primeiras vacinas do bebê após o nascimento.</span></div><span class="tag">bebê</span></div></div></div>
