@@ -549,18 +549,49 @@ const BABY_WEEK_GUIDE={
   39:{cm:'50,7',compare:'uma mini melancia',detail:'Pulmões e cérebro continuam amadurecendo até o final da gestação.'},
   40:{cm:'51,2',compare:'uma abóbora média',detail:'O bebê está pronto para o encontro com vocês.'}
 };
+// Referências semanais aproximadas de massa fetal (gramas); não são medidas do ultrassom.
+const BABY_WEEK_WEIGHT_G={
+  8:1,9:2,10:4,11:7,12:14,13:23,14:43,15:70,16:100,17:140,
+  18:190,19:240,20:300,21:360,22:430,23:501,24:600,25:660,
+  26:760,27:875,28:1005,29:1153,30:1319,31:1502,32:1702,
+  33:1918,34:2146,35:2383,36:2622,37:2859,38:3083,39:3288,40:3462
+};
+const babyWeightLabel=(week)=>{
+ const grams=BABY_WEEK_WEIGHT_G[week];
+ if(grams==null)return null;
+ return grams>=1000?(grams/1000).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' kg':grams.toLocaleString('pt-BR')+' g';
+};
 function babyStageInfo(){
   const wk=clamp(weeks,4,40);
   return BABY_WEEK_GUIDE[wk]||BABY_WEEK_GUIDE[8];
 }
 function renderBabyTodayCard(){
  const info=babyStageInfo();
+ const stageWeek=clamp(weeks,4,40);
+ const weightLabel=babyWeightLabel(stageWeek);
+ const lengthMethod=stageWeek<=20?'Da cabeça ao bumbum (CCN)':'Da cabeça aos pés';
  const guideCm=Number(String(info.cm).replace(',','.'))||1;
- const measuredIsRecent=calendarDay(today)-calendarDay(parseYmd(LATEST_BABY_MEASUREMENT.date))<=14;
- const visualCm=measuredIsRecent?LATEST_BABY_MEASUREMENT.cm:guideCm;
- const visualScale=clamp(.58+Math.sqrt(Math.max(.2,visualCm)/3.1)*.46,.68,1.12);
- const measuredText=`${LATEST_BABY_MEASUREMENT.cm.toFixed(1).replace('.',',')} cm · medido em ${fmtDate(LATEST_BABY_MEASUREMENT.date)}`;
- return `<div class="baby-today humanized-baby-card"><div class="baby-human-stage" style="--baby-scale:${visualScale}" aria-label="Visual ilustrativo humanizado do bebê na semana atual"><div class="baby-human-image"></div><div class="baby-human-overlay"></div><span class="baby-visual-label">visual ilustrativo · semana ${weeks}</span><div class="baby-size-chip">${measuredText}</div></div><div class="baby-today-copy"><span class="baby-kicker">Como ${PROFILE.babyNames} está hoje</span><h3>${weeks} semanas${days?` e ${days} dias`:''}</h3><p><b>Última medida registrada: ${LATEST_BABY_MEASUREMENT.cm.toFixed(1).replace('.',',')} cm</b>, em ${fmtDate(LATEST_BABY_MEASUREMENT.date)}. A referência da semana é aproximadamente ${info.cm} cm, por volta do tamanho de <b>${info.compare}</b>.</p><div class="baby-evolution">${info.detail}<br><small>O tamanho medido pela médica prevalece sobre a estimativa genérica. O visual é ilustrativo, não uma reprodução do ultrassom.</small></div></div></div>`
+ const visualScale=clamp(.58+Math.sqrt(Math.max(.2,guideCm)/3.1)*.46,.68,1.12);
+ const measurementText=`${LATEST_BABY_MEASUREMENT.cm.toFixed(1).replace('.',',')} cm`;
+ const ageText=`${weeks} semanas${days?(days===1?' e 1 dia':` e ${days} dias`):''}`;
+ return `<div class="baby-today humanized-baby-card">
+  <div class="baby-human-stage" style="--baby-scale:${visualScale}" aria-label="Arte ilustrativa, não representa fielmente a anatomia fetal nem é reprodução de ultrassom">
+   <div class="baby-human-image"></div><div class="baby-human-overlay"></div>
+   <span class="baby-visual-label">arte ilustrativa · semana ${weeks}</span>
+   <div class="baby-size-chip">Estimativa: ${info.cm} cm${weightLabel?` · ${weightLabel}`:''}</div>
+  </div>
+  <div class="baby-today-copy">
+   <span class="baby-kicker">Como ${PROFILE.babyNames} está hoje</span>
+   <h3>${ageText}</h3>
+   <div class="baby-reference-grid">
+    <div class="baby-estimate"><span>Comprimento de referência</span><strong>${info.cm} cm</strong><small>${lengthMethod}</small></div>
+    <div class="baby-estimate"><span>Peso de referência</span><strong>${weightLabel||'—'}</strong><small>${weightLabel?'Estimativa média da semana':'Sem estimativa nesta semana'}</small></div>
+   </div>
+   <p class="baby-comparison">Nesta semana, o tamanho é comparado ao de <b>${info.compare}</b>.</p>
+   <p class="baby-ultrasound-history"><b>Última medida real em ultrassom:</b> ${measurementText} em ${fmtDate(LATEST_BABY_MEASUREMENT.date)}. Este é um registro anterior, não o tamanho atual.</p>
+   <div class="baby-evolution">${info.detail}<br><small>Comprimento e peso são referências aproximadas por idade gestacional, não medições do ${PROFILE.babyNames}. A imagem é uma arte ilustrativa e pode não corresponder às proporções reais desta semana.</small></div>
+  </div>
+ </div>`;
 }
 function renderDashboard(){const st=stats();$('#view-dashboard').innerHTML=`\n ${!canEdit()?'<div class="notice readonly-note"><b>Modo visitante.</b> Você pode navegar e visualizar os dados, mas não pode cadastrar ou alterar informações.</div>':''}
  <div class="hero">
