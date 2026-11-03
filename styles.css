@@ -148,3 +148,15 @@
   width:0;
   height:0;
 }
+
+
+/* Medidas fetais: referências atuais separadas de registros históricos de ultrassom. */
+.baby-reference-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:11px 0 13px}
+.baby-estimate{display:flex;flex-direction:column;gap:3px;padding:13px 14px;border-radius:17px;background:#f4f9f6;border:1px solid #dceae1;min-width:0}
+.baby-estimate>span{font-size:11px;color:#536a5c;font-weight:750;line-height:1.35}
+.baby-estimate>strong{font-size:25px;color:#153729;letter-spacing:-.035em;line-height:1.25}
+.baby-estimate>small{font-size:10.5px;color:#6b7b71;line-height:1.4;margin-top:1px}
+.humanized-baby-card .baby-today-copy .baby-comparison{font-size:13px;margin:6px 0 12px;color:#526458}
+.humanized-baby-card .baby-today-copy .baby-ultrasound-history{font-size:12.5px;line-height:1.55;border:1px solid #e3e8e3;border-radius:13px;padding:10px 12px;background:#fafcfb;color:#526458}
+.baby-human-stage .baby-size-chip{max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis;text-align:center}
+@media(max-width:400px){.baby-reference-grid{gap:8px}.baby-estimate{padding:11px 10px}.baby-estimate>strong{font-size:22px}.baby-human-stage .baby-size-chip{font-size:12px;padding:9px 12px}}
