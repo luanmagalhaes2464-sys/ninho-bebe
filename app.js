@@ -575,7 +575,7 @@ function renderBabyTodayCard(){
  const measurementText=`${LATEST_BABY_MEASUREMENT.cm.toFixed(1).replace('.',',')} cm`;
  const ageText=`${weeks} semanas${days?(days===1?' e 1 dia':` e ${days} dias`):''}`;
  return `<div class="baby-today humanized-baby-card">
-  <div class="baby-human-stage" style="--baby-scale:${visualScale}" aria-label="Arte ilustrativa, não representa fielmente a anatomia fetal nem é reprodução de ultrassom">
+  <div class="baby-human-stage${weeks===16?' is-16w':''}" style="--baby-scale:${visualScale}" aria-label="Arte ilustrativa, não representa fielmente a anatomia fetal nem é reprodução de ultrassom">
    <div class="baby-human-image"></div><div class="baby-human-overlay"></div>
    <span class="baby-visual-label">arte ilustrativa · semana ${weeks}</span>
    <div class="baby-size-chip">Estimativa: ${info.cm} cm${weightLabel?` · ${weightLabel}`:''}</div>

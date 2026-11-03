@@ -160,3 +160,7 @@
 .humanized-baby-card .baby-today-copy .baby-ultrasound-history{font-size:12.5px;line-height:1.55;border:1px solid #e3e8e3;border-radius:13px;padding:10px 12px;background:#fafcfb;color:#526458}
 .baby-human-stage .baby-size-chip{max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis;text-align:center}
 @media(max-width:400px){.baby-reference-grid{gap:8px}.baby-estimate{padding:11px 10px}.baby-estimate>strong{font-size:22px}.baby-human-stage .baby-size-chip{font-size:12px;padding:9px 12px}}
+
+/* 16 semanas: ilustração fetal correspondente à fase, sem duplicar a legenda da imagem. */
+.baby-human-stage.is-16w .baby-human-image{background-image:url("ian-16-semanas.webp")!important;background-size:cover;background-position:center;inset:0;transform:none!important;animation:none!important}
+.baby-human-stage.is-16w .baby-visual-label{display:none}
